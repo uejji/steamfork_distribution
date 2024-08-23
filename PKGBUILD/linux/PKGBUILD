@@ -7,7 +7,7 @@
 
 pkgbase=linux
 pkgver=6.10.6
-pkgrel=2
+pkgrel=2.1
 pkgdesc="Linux Stable"
 arch=(x86_64)
 url="https://kernel.org/"
@@ -44,6 +44,7 @@ source=(
   0012-HACK-add-KConfig-to-enable-driver-specific-color-mgm.patch
   0013-Don-t-create-color_mgmt_properties-on-asics-SIENNA_C.patch
   0020-add-devices-to-oxp-sensors.patch
+  0021-rog-ally-support.patch
   0031-IIO-add-aya-neo-tablet-identifier.patch
   0032-iio-imu-Add-driver-for-Bosch-BMI260-IMU.patch
   0033-Codec-Add-aw87xxx-codec-with-partial-acpi-implementa.patch
@@ -54,6 +55,8 @@ source=(
   0040-Add-Atari-VCS-quirk.patch
   0050-AMD-Pstate-Core-Performance-Boost.patch
   0051-drm-amd-display-let-update_planes_and_stream_state-d.patch
+  0052-asus-armoury-support.patch
+  0098-add-ally-and-armoury-drivers.patch
   0099-add-ayaneo-and-ayn-platform-drivers.patch
 )
 validpgpkeys=(
@@ -62,7 +65,7 @@ validpgpkeys=(
   'A2FF3A36AAA56654109064AB19802F8B0D70FC30'  # Jan Alexander Steffens (heftig)
 )
 sha256sums=('SKIP'
-'ce7eb735c62dc815e0397319df231090a12ad5b7c476655d72ede02d9d0dd031' # config
+'41241ee072911fa0f3f7f304c8c077e8be79a50197a4ac470d4cf9d8e77278d9' # config
 '2fde7b646741397b0847ff71fe42ec178aef7de2436cc5531b0e725e878dccf8' # 0001-drm-panel-orientation-quirks.patch
 '783da391e0f45635eefb583b8b3acc29cd62a0c9eeefedf7f790dc2f89c7e279' # 0006-Ayaneo-geek-headset-patch.patch
 '33edff1a51ceb763c47b3ae485f5857a716a1dac9f1e8b65c3b93c6e88a4838f' # 0007-ayaneo-2-headphone-fix.patch
@@ -70,6 +73,7 @@ sha256sums=('SKIP'
 'f3a54e5bde55f8481cb4e9e3c8fce7a28ae7a7e42208c5f76bdcc6d8dcf6fc08' # 0012-HACK-add-KConfig-to-enable-driver-specific-color-mgm.patch
 '683128d044f4df12dcb0a7b2858075f510d870460dc71f0d60f69df89cf62419' # 0013-Don-t-create-color_mgmt_properties-on-asics-SIENNA_C.patch
 'b42fa6bb0e3d93aa8a81f61543c2058fa6f8412b9ad190110ffb49c46e81d5ce' # 0020-add-devices-to-oxp-sensors.patch
+'706073b6dfee0141c32fa9c8b932c8b314f0ead51de50dae94493cf47f144f45' # 0021-rog-ally-support.patch
 'd4bc9044e7e3290d6885d08b8360b61744dc4227a723aa178f9041284e062f08' # 0031-IIO-add-aya-neo-tablet-identifier.patch
 'dc8218b5cf4b505a51c77712e54b944f01560d37a0e7630160d5f5776023cfda' # 0032-iio-imu-Add-driver-for-Bosch-BMI260-IMU.patch
 '5508dedc920022b728489eb3ebbf7235fe48a7822d3c654cd678388c743442b9' # 0033-Codec-Add-aw87xxx-codec-with-partial-acpi-implementa.patch
@@ -80,7 +84,9 @@ sha256sums=('SKIP'
 '1822769c05fd3b2126870a853c41ab167a95cf91d23f0d50bb103838857489eb' # 0040-Add-Atari-VCS-quirk.patch
 'c6ff653b1e55c5524b237a40683a34240d4ec7b95e524441ed3ae09ed885f674' # 0050-AMD-Pstate-Core-Performance-Boost.patch
 '7c7df8d4427c807e2cea0f1e147efcdfb1e7c1c5271823cc6bb49f10b1846d19' # 0051-drm-amd-display-let-update_planes_and_stream_state-d.patch
-'23673c33ea69f3508ff9265d27171e2e58899950d563a1726a6049afe9e92067' # 0099-add-ayaneo-and-ayn-platform-drivers.patch
+'543bf5b9cd779a6f89845bf160aee1a2594c5df0ad4fd2f7f975920a99ad082f' # 0052-asus-armoury-support.patch
+'d60a3cb38b99873937a0c4e3df4a969a7bfb25ed298ee2824b56081353f90d8d' # 0098-add-ally-and-armoury-drivers.patch
+'bd570655bb7df92472ad8e9c823b23112bd142f394d20f26097a279f66f0634b' # 0099-add-ayaneo-and-ayn-platform-drivers.patch
 )
 
 export KBUILD_BUILD_HOST=$(hostnamectl hostname)
@@ -96,6 +102,8 @@ prepare() {
   cd ${_srcname}/drivers
   git clone https://github.com/SteamFork/ayaneo-platform.git
   git clone https://github.com/SteamFork/ayn-platform.git
+  git clone https://github.com/uejji/asus-armoury.git
+  git clone https://github.com/uejji/hid-asus-ally.git
   cd ..
 
   echo "Setting version..."
