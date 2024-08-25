@@ -1,6 +1,6 @@
 diff -rupN linux-6.10.6.orig/drivers/platform/x86/asus-wmi.c linux-6.10.6/drivers/platform/x86/asus-wmi.c
 --- linux-6.10.6.orig/drivers/platform/x86/asus-wmi.c	2024-08-19 04:05:40.000000000 +0000
-+++ linux-6.10.6/drivers/platform/x86/asus-wmi.c	2024-08-22 03:08:50.945900520 +0000
++++ linux-6.10.6/drivers/platform/x86/asus-wmi.c	2024-08-25 05:57:01.848212997 +0000
 @@ -1685,7 +1685,8 @@ static int asus_wmi_led_init(struct asus
  			goto error;
  	}
@@ -11,20 +11,61 @@ diff -rupN linux-6.10.6.orig/drivers/platform/x86/asus-wmi.c linux-6.10.6/driver
  		asus->kbd_led_wk = led_val;
  		asus->kbd_led.name = "asus::kbd_backlight";
  		asus->kbd_led.flags = LED_BRIGHT_HW_CHANGED;
+@@ -4650,7 +4651,7 @@ static int asus_wmi_add(struct platform_
+ 	asus->dgpu_disable_available = asus_wmi_dev_is_present(asus, ASUS_WMI_DEVID_DGPU);
+ 	asus->kbd_rgb_state_available = asus_wmi_dev_is_present(asus, ASUS_WMI_DEVID_TUF_RGB_STATE);
+ 	asus->ally_mcu_usb_switch = acpi_has_method(NULL, ASUS_USB0_PWR_EC0_CSEE)
+-						&& dmi_match(DMI_BOARD_NAME, "RC71L");
++						&& dmi_check_system(asus_ally_mcu_quirk);
+ 
+ 	if (asus_wmi_dev_is_present(asus, ASUS_WMI_DEVID_MINI_LED_MODE))
+ 		asus->mini_led_dev_id = ASUS_WMI_DEVID_MINI_LED_MODE;
+diff -rupN linux-6.10.6.orig/include/linux/platform_data/x86/asus-wmi.h linux-6.10.6/include/linux/platform_data/x86/asus-wmi.h
+--- linux-6.10.6.orig/include/linux/platform_data/x86/asus-wmi.h	2024-08-19 04:05:40.000000000 +0000
++++ linux-6.10.6/include/linux/platform_data/x86/asus-wmi.h	2024-08-25 05:25:25.294154561 +0000
+@@ -2,6 +2,7 @@
+ #ifndef __PLATFORM_DATA_X86_ASUS_WMI_H
+ #define __PLATFORM_DATA_X86_ASUS_WMI_H
+ 
++#include <linux/dmi.h>
+ #include <linux/errno.h>
+ #include <linux/types.h>
+ 
+@@ -160,4 +161,19 @@ static inline int asus_wmi_evaluate_meth
+ }
+ #endif
+ 
++/* To be used by both hid-asus and asus-wmi to determine which controls kbd_brightness */
++static const struct dmi_system_id asus_ally_mcu_quirk[] = {
++	{
++		.matches = {
++			DMI_MATCH(DMI_BOARD_NAME, "RC71L"),
++		},
++	},
++	{
++		.matches = {
++			DMI_MATCH(DMI_BOARD_NAME, "RC72L"),
++		},
++	},
++	{ },
++};
++
+ #endif	/* __PLATFORM_DATA_X86_ASUS_WMI_H */
 diff -rupN linux-6.10.6.orig/drivers/hid/hid-asus.c linux-6.10.6/drivers/hid/hid-asus.c
 --- linux-6.10.6.orig/drivers/hid/hid-asus.c	2024-08-19 04:05:40.000000000 +0000
-+++ linux-6.10.6/drivers/hid/hid-asus.c	2024-08-22 03:09:56.997507927 +0000
-@@ -52,6 +52,9 @@ MODULE_DESCRIPTION("Asus HID Keyboard an
++++ linux-6.10.6/drivers/hid/hid-asus.c	2024-08-24 04:13:17.225649121 +0000
+@@ -52,6 +52,10 @@ MODULE_DESCRIPTION("Asus HID Keyboard an
  #define FEATURE_KBD_LED_REPORT_ID1 0x5d
  #define FEATURE_KBD_LED_REPORT_ID2 0x5e
  
 +#define ALLY_CFG_INTF_IN_ADDRESS 0x83
 +#define ALLY_CFG_INTF_OUT_ADDRESS 0x04
++#define ALLY_X_INTERFACE_ADDRESS 0x87
 +
  #define SUPPORT_KBD_BACKLIGHT BIT(0)
  
  #define MAX_TOUCH_MAJOR 8
-@@ -84,6 +87,7 @@ MODULE_DESCRIPTION("Asus HID Keyboard an
+@@ -84,6 +88,7 @@ MODULE_DESCRIPTION("Asus HID Keyboard an
  #define QUIRK_MEDION_E1239T		BIT(10)
  #define QUIRK_ROG_NKEY_KEYBOARD		BIT(11)
  #define QUIRK_ROG_CLAYMORE_II_KEYBOARD BIT(12)
@@ -32,7 +73,7 @@ diff -rupN linux-6.10.6.orig/drivers/hid/hid-asus.c linux-6.10.6/drivers/hid/hid
  
  #define I2C_KEYBOARD_QUIRKS			(QUIRK_FIX_NOTEBOOK_REPORT | \
  						 QUIRK_NO_INIT_REPORTS | \
-@@ -492,12 +496,19 @@ static void asus_kbd_backlight_work(stru
+@@ -492,12 +497,19 @@ static void asus_kbd_backlight_work(stru
   */
  static bool asus_kbd_wmi_led_control_present(struct hid_device *hdev)
  {
@@ -52,7 +93,7 @@ diff -rupN linux-6.10.6.orig/drivers/hid/hid-asus.c linux-6.10.6/drivers/hid/hid
  	ret = asus_wmi_evaluate_method(ASUS_WMI_METHODID_DSTS,
  				       ASUS_WMI_DEVID_KBD_BACKLIGHT, 0, &value);
  	hid_dbg(hdev, "WMI backlight check: rc %d value %x", ret, value);
-@@ -996,6 +1007,16 @@ static int asus_probe(struct hid_device
+@@ -996,6 +1008,17 @@ static int asus_probe(struct hid_device
  
  	drvdata->quirks = id->driver_data;
  
@@ -61,7 +102,8 @@ diff -rupN linux-6.10.6.orig/drivers/hid/hid-asus.c linux-6.10.6/drivers/hid/hid
 +		struct usb_interface *intf = to_usb_interface(hdev->dev.parent);
 +		struct usb_host_endpoint *ep = intf->cur_altsetting->endpoint;
 +
-+		if (ep->desc.bEndpointAddress == ALLY_CFG_INTF_IN_ADDRESS ||
++		if (ep->desc.bEndpointAddress == ALLY_X_INTERFACE_ADDRESS ||
++			ep->desc.bEndpointAddress == ALLY_CFG_INTF_IN_ADDRESS ||
 +			ep->desc.bEndpointAddress == ALLY_CFG_INTF_OUT_ADDRESS)
 +			return -ENODEV;
 +	}
@@ -69,12 +111,76 @@ diff -rupN linux-6.10.6.orig/drivers/hid/hid-asus.c linux-6.10.6/drivers/hid/hid
  	/*
  	 * T90CHI's keyboard dock returns same ID values as T100CHI's dock.
  	 * Thus, identify T90CHI dock with product name string.
-@@ -1247,7 +1268,7 @@ static const struct hid_device_id asus_d
+@@ -1247,7 +1270,10 @@ static const struct hid_device_id asus_d
  	  QUIRK_USE_KBD_BACKLIGHT | QUIRK_ROG_NKEY_KEYBOARD },
  	{ HID_USB_DEVICE(USB_VENDOR_ID_ASUSTEK,
  	    USB_DEVICE_ID_ASUSTEK_ROG_NKEY_ALLY),
 -	  QUIRK_USE_KBD_BACKLIGHT | QUIRK_ROG_NKEY_KEYBOARD },
 +	  QUIRK_USE_KBD_BACKLIGHT | QUIRK_ROG_NKEY_KEYBOARD | QUIRK_ROG_ALLY_XPAD},
++	{ HID_USB_DEVICE(USB_VENDOR_ID_ASUSTEK,
++	    USB_DEVICE_ID_ASUSTEK_ROG_NKEY_ALLY_X),
++	  QUIRK_USE_KBD_BACKLIGHT | QUIRK_ROG_NKEY_KEYBOARD | QUIRK_ROG_ALLY_XPAD},
  	{ HID_USB_DEVICE(USB_VENDOR_ID_ASUSTEK,
  	    USB_DEVICE_ID_ASUSTEK_ROG_CLAYMORE_II_KEYBOARD),
  	  QUIRK_ROG_CLAYMORE_II_KEYBOARD },
+diff -rupN linux-6.10.6.orig/drivers/hid/hid-ids.h linux-6.10.6/drivers/hid/hid-ids.h
+--- linux-6.10.6.orig/drivers/hid/hid-ids.h	2024-08-19 04:05:40.000000000 +0000
++++ linux-6.10.6/drivers/hid/hid-ids.h	2024-08-25 03:25:38.369296369 +0000
+@@ -210,6 +210,7 @@
+ #define USB_DEVICE_ID_ASUSTEK_ROG_NKEY_KEYBOARD3	0x1a30
+ #define USB_DEVICE_ID_ASUSTEK_ROG_Z13_LIGHTBAR		0x18c6
+ #define USB_DEVICE_ID_ASUSTEK_ROG_NKEY_ALLY		0x1abe
++#define USB_DEVICE_ID_ASUSTEK_ROG_NKEY_ALLY_X		0x1b4c
+ #define USB_DEVICE_ID_ASUSTEK_ROG_CLAYMORE_II_KEYBOARD	0x196b
+ #define USB_DEVICE_ID_ASUSTEK_FX503VD_KEYBOARD	0x1869
+ 
+diff -rupN linux-6.10.6.orig/sound/pci/hda/patch_realtek.c linux-6.10.6/sound/pci/hda/patch_realtek.c
+--- linux-6.10.6.orig/sound/pci/hda/patch_realtek.c	2024-08-19 04:05:40.000000000 +0000
++++ linux-6.10.6/sound/pci/hda/patch_realtek.c	2024-08-25 01:47:10.202095677 +0000
+@@ -7409,6 +7409,7 @@ enum {
+ 	ALC285_FIXUP_THINKPAD_X1_GEN7,
+ 	ALC285_FIXUP_THINKPAD_HEADSET_JACK,
+ 	ALC294_FIXUP_ASUS_ALLY,
++	ALC294_FIXUP_ASUS_ALLY_X,
+ 	ALC294_FIXUP_ASUS_ALLY_PINS,
+ 	ALC294_FIXUP_ASUS_ALLY_VERBS,
+ 	ALC294_FIXUP_ASUS_ALLY_SPEAKER,
+@@ -8875,6 +8876,12 @@ static const struct hda_fixup alc269_fix
+ 		.chained = true,
+ 		.chain_id = ALC294_FIXUP_ASUS_ALLY_PINS
+ 	},
++	[ALC294_FIXUP_ASUS_ALLY_X] = {
++		.type = HDA_FIXUP_FUNC,
++		.v.func = tas2781_fixup_i2c,
++		.chained = true,
++		.chain_id = ALC294_FIXUP_ASUS_ALLY_PINS
++	},
+ 	[ALC294_FIXUP_ASUS_ALLY_PINS] = {
+ 		.type = HDA_FIXUP_PINS,
+ 		.v.pins = (const struct hda_pintbl[]) {
+@@ -10307,6 +10314,7 @@ static const struct snd_pci_quirk alc269
+ 	SND_PCI_QUIRK(0x1043, 0x1740, "ASUS UX430UA", ALC295_FIXUP_ASUS_DACS),
+ 	SND_PCI_QUIRK(0x1043, 0x17d1, "ASUS UX431FL", ALC294_FIXUP_ASUS_DUAL_SPK),
+ 	SND_PCI_QUIRK(0x1043, 0x17f3, "ROG Ally NR2301L/X", ALC294_FIXUP_ASUS_ALLY),
++	SND_PCI_QUIRK(0x1043, 0x1eb3, "ROG Ally X RC72LA", ALC294_FIXUP_ASUS_ALLY_X),
+ 	SND_PCI_QUIRK(0x1043, 0x1863, "ASUS UX6404VI/VV", ALC245_FIXUP_CS35L41_SPI_2),
+ 	SND_PCI_QUIRK(0x1043, 0x1881, "ASUS Zephyrus S/M", ALC294_FIXUP_ASUS_GX502_PINS),
+ 	SND_PCI_QUIRK(0x1043, 0x18b1, "Asus MJ401TA", ALC256_FIXUP_ASUS_HEADSET_MIC),
+diff -rupN linux-6.10.6.orig/drivers/platform/x86/amd/pmf/pmf-quirks.c linux-6.10.6/drivers/platform/x86/amd/pmf/pmf-quirks.c
+--- linux-6.10.6.orig/drivers/platform/x86/amd/pmf/pmf-quirks.c	2024-08-19 04:05:40.000000000 +0000
++++ linux-6.10.6/drivers/platform/x86/amd/pmf/pmf-quirks.c	2024-08-24 11:58:42.128829894 +0000
+@@ -29,6 +29,14 @@ static const struct dmi_system_id fwbug_
+ 		},
+ 		.driver_data = &quirk_no_sps_bug,
+ 	},
++	{
++		.ident = "ROG Ally X",
++		.matches = {
++			DMI_MATCH(DMI_SYS_VENDOR, "ASUSTeK COMPUTER INC."),
++			DMI_MATCH(DMI_PRODUCT_NAME, "RC72LA"),
++		},
++		.driver_data = &quirk_no_sps_bug,
++	},
+ 	{}
+ };
+ 
