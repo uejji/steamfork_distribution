@@ -219,14 +219,13 @@ diff -rupN linux-6.10.7.orig/drivers/platform/x86/asus-wmi.c linux-6.10.7/driver
  
  	if (!wmi_has_guid(ASUS_WMI_MGMT_GUID)) {
  		pr_warn("ASUS Management GUID not found\n");
-@@ -4943,6 +4990,11 @@ static int asus_wmi_probe(struct platfor
+@@ -4943,6 +4990,10 @@ static int asus_wmi_probe(struct platfor
  			return ret;
  	}
  
 +	err = acpi_register_lps0_dev(&asus_ally_s2idle_dev_ops);
 +	if (err)
 +		pr_warn("failed to register LPS0 sleep handler in asus-wmi\n");
-+
 +
  	return asus_wmi_add(pdev);
  }
