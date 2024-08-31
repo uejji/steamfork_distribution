@@ -13,16 +13,17 @@ diff -rupN linux-6.10.7.orig/drivers/platform/x86/asus-wmi.c linux-6.10.7/driver
  #include <linux/acpi.h>
  #include <linux/backlight.h>
  #include <linux/debugfs.h>
-@@ -137,9 +140,7 @@ module_param(fnlock_default, bool, 0444)
+@@ -137,10 +140,7 @@ module_param(fnlock_default, bool, 0444)
  #define ASUS_MINI_LED_2024_STRONG	0x01
  #define ASUS_MINI_LED_2024_OFF		0x02
  
 -/* Controls the power state of the USB0 hub on ROG Ally which input is on */
  #define ASUS_USB0_PWR_EC0_CSEE "\\_SB.PCI0.SBRG.EC0.CSEE"
 -/* 300ms so far seems to produce a reliable result on AC and battery */
- #define ASUS_USB0_PWR_EC0_CSEE_WAIT 1500
+-#define ASUS_USB0_PWR_EC0_CSEE_WAIT 1500
  
  static const char * const ashs_ids[] = { "ATK4001", "ATK4002", NULL };
+ 
 @@ -254,9 +255,6 @@ struct asus_wmi {
  	u32 tablet_switch_dev_id;
  	bool tablet_switch_inverted;
@@ -239,8 +240,16 @@ diff -rupN linux-6.10.7.orig/drivers/platform/x86/asus-wmi.c linux-6.10.7/driver
  	used = false;
 diff -rupN linux-6.10.7.orig/include/linux/platform_data/x86/asus-wmi.h linux-6.10.7/include/linux/platform_data/x86/asus-wmi.h
 --- linux-6.10.7.orig/include/linux/platform_data/x86/asus-wmi.h	2024-08-29 15:36:13.000000000 +0000
-+++ linux-6.10.7/include/linux/platform_data/x86/asus-wmi.h	2024-08-31 02:15:18.431626702 +0000
-@@ -160,4 +160,25 @@ static inline int asus_wmi_evaluate_meth
++++ linux-6.10.7/include/linux/platform_data/x86/asus-wmi.h	2024-08-30 23:50:55.062393698 +0000
+@@ -2,6 +2,7 @@
+ #ifndef __PLATFORM_DATA_X86_ASUS_WMI_H
+ #define __PLATFORM_DATA_X86_ASUS_WMI_H
+ 
++#include <linux/dmi.h>
+ #include <linux/errno.h>
+ #include <linux/types.h>
+ 
+@@ -160,4 +161,25 @@ static inline int asus_wmi_evaluate_meth
  }
  #endif
  
