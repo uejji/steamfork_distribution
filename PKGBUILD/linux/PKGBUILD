@@ -7,7 +7,7 @@
 
 pkgbase=linux
 pkgver=6.10.7
-pkgrel=1.12
+pkgrel=1.13
 pkgdesc="Linux Stable"
 arch=(x86_64)
 url="https://kernel.org/"
@@ -59,6 +59,7 @@ source=(
   0053-add-support-for-screen-off-and-screen-on.patch
   0054-Notify-the-suspend-core-when-displays-are-changed-at.patch
   0055-Move-screen-off_on-code-into-dedicated.patch
+  0056-s2idle-add-ability-to-configure-wakeup-by-ac-adapter.patch
   0098-add-ally-and-armoury-drivers.patch
   0099-add-ayaneo-and-ayn-platform-drivers.patch
 )
@@ -91,6 +92,7 @@ sha256sums=('SKIP'
 'a8e3c0f7a3cdcc82a12a5dc44772263c2dd7bc3207f16b98dac42e0e74184172' # 0053-add-support-for-screen-off-and-screen-on.patch
 'abf7ddb74fa9eb0cfdbe81dba7bf4003e5d85ac1a4e1f2b5333ab97986c3e68e' # 0054-Notify-the-suspend-core-when-displays-are-changed-at.patch
 '713653bbb8d96eba905d87864989ca2ee0363efbcdf8217121924f538be2adc8' # 0055-Move-screen-off_on-code-into-dedicated.patch
+'7a22821908d3bc13d8ffd998d740fa3763ec813ff81944d565988ed751292c22' # 0056-s2idle-add-ability-to-configure-wakeup-by-ac-adapter.patch
 'd60a3cb38b99873937a0c4e3df4a969a7bfb25ed298ee2824b56081353f90d8d' # 0098-add-ally-and-armoury-drivers.patch
 'bd570655bb7df92472ad8e9c823b23112bd142f394d20f26097a279f66f0634b' # 0099-add-ayaneo-and-ayn-platform-drivers.patch
 )
