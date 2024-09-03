@@ -1,4 +1,4 @@
-From cdb5859643918e64b5f9114d46a774b7e80dcdf5 Mon Sep 17 00:00:00 2001
+From 4f9dd1873dbc36a3418adb8b92629a63723186dc Mon Sep 17 00:00:00 2001
 From: Mario Limonciello <mario.limonciello@amd.com>
 Date: Sun, 25 Aug 2024 21:21:32 -0500
 Subject: [PATCH] acpi/x86: s2idle: Add ability to configure wakeup by AC
@@ -15,12 +15,12 @@ should wakeup by default from AC adapter changes.
 
 Signed-off-by: Mario Limonciello <mario.limonciello@amd.com>
 ---
- drivers/acpi/x86/s2idle.c | 19 +++++++++++++++++++
+ drivers/acpi/x86/s2idle.c | 23 +++++++++++++++++++++++
  include/linux/acpi.h      |  1 +
- 2 files changed, 20 insertions(+)
+ 2 files changed, 24 insertions(+)
 
 diff --git a/drivers/acpi/x86/s2idle.c b/drivers/acpi/x86/s2idle.c
-index e7f9748937d68..9f4281c8ff588 100644
+index e7f9748937d68..27845016344f5 100644
 --- a/drivers/acpi/x86/s2idle.c
 +++ b/drivers/acpi/x86/s2idle.c
 @@ -18,6 +18,7 @@
@@ -66,62 +66,7 @@ index e7f9748937d68..9f4281c8ff588 100644
  	/* LPS0 entry */
  	if (lps0_dsm_func_mask > 0 && acpi_s2idle_vendor_amd())
  		acpi_sleep_run_lps0_dsm(ACPI_LPS0_ENTRY_AMD,
-@@ -641,6 +649,15 @@ void acpi_s2idle_check(void)
- 		if (handler->check)
- 			handler->check();
- 	}
-+
-+	/* if configured, wake system from AC adapter changes */
-+	if (device_may_wakeup(&lps0_device->dev) &&
-+	    power_supply_is_system_supplied() != lps0_ac_state) {
-+		if (pm_debug_messages_on)
-+			acpi_handle_info(lps0_device_handle,
-+					"AC adapter state changed\n");
-+		acpi_pm_wakeup_event(&lps0_device->dev);
-+	}
- }
- 
- void acpi_s2idle_restore_early(void)
-@@ -704,6 +721,8 @@ int acpi_register_lps0_dev(struct acpi_s2idle_dev_ops *arg)
- 
- 	sleep_flags = lock_system_sleep();
- 	list_add(&arg->list_node, &lps0_s2idle_devops_head);
-+	if (arg->wake_on_ac)
-+		device_set_wakeup_enable(&lps0_device->dev, true);
- 	unlock_system_sleep(sleep_flags);
- 
- 	return 0;
-diff --git a/include/linux/acpi.h b/include/linux/acpi.h
-index 0687a442fec7d..fc46f7d877d78 100644
---- a/include/linux/acpi.h
-+++ b/include/linux/acpi.h
-@@ -1115,6 +1115,7 @@ struct acpi_s2idle_dev_ops {
- 	void (*prepare)(void);
- 	void (*check)(void);
- 	void (*restore)(void);
-+	bool wake_on_ac;
- };
- int acpi_register_lps0_dev(struct acpi_s2idle_dev_ops *arg);
- void acpi_unregister_lps0_dev(struct acpi_s2idle_dev_ops *arg);
--- 
-GitLab
-
-From 7222a79f65f641f4f8ed86ca50de531bd841cb35 Mon Sep 17 00:00:00 2001
-From: "Luke D. Jones" <luke@ljones.dev>
-Date: Mon, 2 Sep 2024 13:45:18 +1200
-Subject: [PATCH] s2idle: wake on ac-plugged only
-
-- fix state on unplug/plug while suspended
----
- drivers/acpi/x86/s2idle.c | 10 +++++++---
- include/linux/acpi.h      |  2 +-
- 2 files changed, 8 insertions(+), 4 deletions(-)
-
-diff --git a/drivers/acpi/x86/s2idle.c b/drivers/acpi/x86/s2idle.c
-index 9f4281c8ff588..27845016344f5 100644
---- a/drivers/acpi/x86/s2idle.c
-+++ b/drivers/acpi/x86/s2idle.c
-@@ -641,6 +641,7 @@ int acpi_s2idle_prepare_late(void)
+@@ -633,6 +641,7 @@ int acpi_s2idle_prepare_late(void)
  void acpi_s2idle_check(void)
  {
  	struct acpi_s2idle_dev_ops *handler;
@@ -129,44 +74,42 @@ index 9f4281c8ff588..27845016344f5 100644
  
  	if (!lps0_device_handle || sleep_no_lps0)
  		return;
-@@ -650,14 +651,17 @@ void acpi_s2idle_check(void)
+@@ -641,6 +650,18 @@ void acpi_s2idle_check(void)
+ 		if (handler->check)
  			handler->check();
  	}
- 
--	/* if configured, wake system from AC adapter changes */
++
 +	/* if configured, wake system from AC adapter plug-in */
 +	system_power = power_supply_is_system_supplied();
- 	if (device_may_wakeup(&lps0_device->dev) &&
--	    power_supply_is_system_supplied() != lps0_ac_state) {
++	if (device_may_wakeup(&lps0_device->dev) &&
 +	    system_power != lps0_ac_state &&
 +	    system_power) {
- 		if (pm_debug_messages_on)
- 			acpi_handle_info(lps0_device_handle,
- 					"AC adapter state changed\n");
- 		acpi_pm_wakeup_event(&lps0_device->dev);
- 	}
++		if (pm_debug_messages_on)
++			acpi_handle_info(lps0_device_handle,
++					"AC adapter state changed\n");
++		acpi_pm_wakeup_event(&lps0_device->dev);
++	}
 +	lps0_ac_state = power_supply_is_system_supplied();
  }
  
  void acpi_s2idle_restore_early(void)
-@@ -721,7 +725,7 @@ int acpi_register_lps0_dev(struct acpi_s2idle_dev_ops *arg)
+@@ -704,6 +725,8 @@ int acpi_register_lps0_dev(struct acpi_s2idle_dev_ops *arg)
  
  	sleep_flags = lock_system_sleep();
  	list_add(&arg->list_node, &lps0_s2idle_devops_head);
--	if (arg->wake_on_ac)
 +	if (arg->enable_wake_on_ac_plug && arg->enable_wake_on_ac_plug())
- 		device_set_wakeup_enable(&lps0_device->dev, true);
++		device_set_wakeup_enable(&lps0_device->dev, true);
  	unlock_system_sleep(sleep_flags);
  
+ 	return 0;
 diff --git a/include/linux/acpi.h b/include/linux/acpi.h
-index fc46f7d877d78..72fc485d52899 100644
+index 0687a442fec7d..72fc485d52899 100644
 --- a/include/linux/acpi.h
 +++ b/include/linux/acpi.h
-@@ -1115,7 +1115,7 @@ struct acpi_s2idle_dev_ops {
+@@ -1115,6 +1115,7 @@ struct acpi_s2idle_dev_ops {
  	void (*prepare)(void);
  	void (*check)(void);
  	void (*restore)(void);
--	bool wake_on_ac;
 +	bool (*enable_wake_on_ac_plug)(void);
  };
  int acpi_register_lps0_dev(struct acpi_s2idle_dev_ops *arg);

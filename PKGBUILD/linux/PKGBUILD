@@ -77,7 +77,7 @@ sha256sums=('SKIP'
 'f3a54e5bde55f8481cb4e9e3c8fce7a28ae7a7e42208c5f76bdcc6d8dcf6fc08' # 0012-HACK-add-KConfig-to-enable-driver-specific-color-mgm.patch
 '683128d044f4df12dcb0a7b2858075f510d870460dc71f0d60f69df89cf62419' # 0013-Don-t-create-color_mgmt_properties-on-asics-SIENNA_C.patch
 'b42fa6bb0e3d93aa8a81f61543c2058fa6f8412b9ad190110ffb49c46e81d5ce' # 0020-add-devices-to-oxp-sensors.patch
-'162b2856b1eda3a8ee0e1e0053516d4396c9775f0d0b9678023c2d5cd19667b6' # 0021-rog-ally-support.patch
+'7b4b0ee52c197f1d28a7f502a139fc6949182a28333ec028a34b13c4031fa12c' # 0021-rog-ally-support.patch
 'd4bc9044e7e3290d6885d08b8360b61744dc4227a723aa178f9041284e062f08' # 0031-IIO-add-aya-neo-tablet-identifier.patch
 'dc8218b5cf4b505a51c77712e54b944f01560d37a0e7630160d5f5776023cfda' # 0032-iio-imu-Add-driver-for-Bosch-BMI260-IMU.patch
 '5508dedc920022b728489eb3ebbf7235fe48a7822d3c654cd678388c743442b9' # 0033-Codec-Add-aw87xxx-codec-with-partial-acpi-implementa.patch
@@ -88,11 +88,11 @@ sha256sums=('SKIP'
 '2728588169bb1e1b4d9987c0732a316e39670f0c873429179b894ddc6be9b0fa' # 0040-amdgpu-quirks.patch
 'c6ff653b1e55c5524b237a40683a34240d4ec7b95e524441ed3ae09ed885f674' # 0050-AMD-Pstate-Core-Performance-Boost.patch
 '7c7df8d4427c807e2cea0f1e147efcdfb1e7c1c5271823cc6bb49f10b1846d19' # 0051-drm-amd-display-let-update_planes_and_stream_state-d.patch
-'543bf5b9cd779a6f89845bf160aee1a2594c5df0ad4fd2f7f975920a99ad082f' # 0052-asus-armoury-support.patch
+'3f11d682a401bd4748115c8daf72a9e3d5a5b01d6aaf65a79b56cde044129b67' # 0052-asus-armoury-support.patch
 'a8e3c0f7a3cdcc82a12a5dc44772263c2dd7bc3207f16b98dac42e0e74184172' # 0053-add-support-for-screen-off-and-screen-on.patch
 'abf7ddb74fa9eb0cfdbe81dba7bf4003e5d85ac1a4e1f2b5333ab97986c3e68e' # 0054-Notify-the-suspend-core-when-displays-are-changed-at.patch
 '713653bbb8d96eba905d87864989ca2ee0363efbcdf8217121924f538be2adc8' # 0055-Move-screen-off_on-code-into-dedicated.patch
-'9ef106c065d567c9f5ba23858ba4baaba1ac16a6fa468f0d8d7287b1cdeb7851' # 0056-s2idle-add-ability-to-configure-wakeup-by-ac-adapter.patch
+'c9aa6ad7917a260b9360dde0d8cc7a39bfe3c5374eab0748a92a570023ec36c6' # 0056-s2idle-add-ability-to-configure-wakeup-by-ac-adapter.patch
 'd60a3cb38b99873937a0c4e3df4a969a7bfb25ed298ee2824b56081353f90d8d' # 0098-add-ally-and-armoury-drivers.patch
 'bd570655bb7df92472ad8e9c823b23112bd142f394d20f26097a279f66f0634b' # 0099-add-ayaneo-and-ayn-platform-drivers.patch
 )
