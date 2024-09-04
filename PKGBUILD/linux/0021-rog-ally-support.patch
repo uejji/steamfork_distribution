@@ -1,19 +1,7 @@
 diff -rupN linux-6.10.7.orig/drivers/platform/x86/asus-wmi.c linux-6.10.7/drivers/platform/x86/asus-wmi.c
 --- linux-6.10.7.orig/drivers/platform/x86/asus-wmi.c	2024-08-29 15:36:13.000000000 +0000
-+++ linux-6.10.7/drivers/platform/x86/asus-wmi.c	2024-09-01 15:36:45.447659421 +0000
-@@ -11,8 +11,11 @@
-  * Copyright (C) 2005 Dmitry Torokhov <dtor@mail.ru>
-  */
- 
-+#include "linux/usb/ch9.h"
- #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
- 
-+#include "linux/printk.h"
-+
- #include <linux/acpi.h>
- #include <linux/backlight.h>
- #include <linux/debugfs.h>
-@@ -137,10 +140,9 @@ module_param(fnlock_default, bool, 0444)
++++ linux-6.10.7/drivers/platform/x86/asus-wmi.c	2024-09-03 15:16:17.351808373 +0000
+@@ -137,10 +137,11 @@ module_param(fnlock_default, bool, 0444)
  #define ASUS_MINI_LED_2024_STRONG	0x01
  #define ASUS_MINI_LED_2024_OFF		0x02
  
@@ -22,11 +10,13 @@ diff -rupN linux-6.10.7.orig/drivers/platform/x86/asus-wmi.c linux-6.10.7/driver
 -/* 300ms so far seems to produce a reliable result on AC and battery */
 -#define ASUS_USB0_PWR_EC0_CSEE_WAIT 1500
 +/* The period required to wait after screen off/on/s2idle.check in MS */
-+#define ASUS_USB0_PWR_EC0_CSEE_WAIT 300
++#define ASUS_USB0_PWR_EC0_CSEE_WAIT	200
++#define ASUS_USB0_PWR_EC0_CSEE_ON	0xB8
++#define ASUS_USB0_PWR_EC0_CSEE_OFF	0xB7
  
  static const char * const ashs_ids[] = { "ATK4001", "ATK4002", NULL };
  
-@@ -254,9 +256,6 @@ struct asus_wmi {
+@@ -254,9 +255,6 @@ struct asus_wmi {
  	u32 tablet_switch_dev_id;
  	bool tablet_switch_inverted;
  
@@ -36,27 +26,50 @@ diff -rupN linux-6.10.7.orig/drivers/platform/x86/asus-wmi.c linux-6.10.7/driver
  	enum fan_type fan_type;
  	enum fan_type gpu_fan_type;
  	enum fan_type mid_fan_type;
-@@ -315,6 +314,9 @@ struct asus_wmi {
+@@ -315,6 +313,8 @@ struct asus_wmi {
  	struct asus_wmi_driver *driver;
  };
  
 +static bool ally_mcu_usb_switch;
-+static int ally_suspended_power_state;
 +
  /* WMI ************************************************************************/
  
  static int asus_wmi_evaluate_method3(u32 method_id,
-@@ -1685,7 +1687,8 @@ static int asus_wmi_led_init(struct asus
+@@ -503,6 +503,23 @@ static int asus_wmi_get_devstate(struct
+ 	return 0;
+ }
+ 
++/* For use with devices where the ACPI get method is always ASUS_WMI_METHODID_DSTS */
++static int asus_wmi_get_devstate_dsts(u32 dev_id, u32 *retval)
++{
++	int err;
++
++	err = asus_wmi_evaluate_method(ASUS_WMI_METHODID_DSTS, dev_id, 0, retval);
++	*retval &= ~ASUS_WMI_DSTS_PRESENCE_BIT;
++
++	if (err)
++		return err;
++	/* Be explicit about retval */
++	if (*retval == ASUS_WMI_UNSUPPORTED_METHOD)
++		return -ENODEV;
++
++	return 0;
++}
++
+ static int asus_wmi_set_devstate(u32 dev_id, u32 ctrl_param,
+ 				 u32 *retval)
+ {
+@@ -1685,7 +1702,8 @@ static int asus_wmi_led_init(struct asus
  			goto error;
  	}
  
 -	if (!kbd_led_read(asus, &led_val, NULL)) {
-+	if (!kbd_led_read(asus, &led_val, NULL) && !dmi_match(DMI_BOARD_NAME, "RC71L")) {
++	if (!kbd_led_read(asus, &led_val, NULL) && !dmi_check_system(asus_use_hid_led_dmi_ids)) {
 +		pr_info("using asus-wmi for asus::kbd_backlight\n");
  		asus->kbd_led_wk = led_val;
  		asus->kbd_led.name = "asus::kbd_backlight";
  		asus->kbd_led.flags = LED_BRIGHT_HW_CHANGED;
-@@ -4344,6 +4347,20 @@ static struct attribute *platform_attrib
+@@ -4344,6 +4362,20 @@ static struct attribute *platform_attrib
  	NULL
  };
  
@@ -77,29 +90,31 @@ diff -rupN linux-6.10.7.orig/drivers/platform/x86/asus-wmi.c linux-6.10.7/driver
  static umode_t asus_sysfs_is_visible(struct kobject *kobj,
  				    struct attribute *attr, int idx)
  {
-@@ -4390,7 +4407,9 @@ static umode_t asus_sysfs_is_visible(str
- 		devid = ASUS_WMI_DEVID_NV_DYN_BOOST;
- 	else if (attr == &dev_attr_nv_temp_target.attr)
- 		devid = ASUS_WMI_DEVID_NV_THERM_TARGET;
--	else if (attr == &dev_attr_mcu_powersave.attr)
-+	else if (attr == &dev_attr_mcu_powersave.attr &&
-+			!asus_ally_has_quirk(ASUS_ROG_ALLY_NO_POWERSAVE))
-+		/* Show only for Ally X +, as Ally 1 needs it forced off */
- 		devid = ASUS_WMI_DEVID_MCU_POWERSAVE;
- 	else if (attr == &dev_attr_boot_sound.attr)
- 		devid = ASUS_WMI_DEVID_BOOT_SOUND;
-@@ -4637,6 +4656,22 @@ static int asus_wmi_add(struct platform_
+@@ -4401,6 +4433,11 @@ static umode_t asus_sysfs_is_visible(str
+ 	else if (attr == &dev_attr_available_mini_led_mode.attr)
+ 		ok = asus->mini_led_dev_id != 0;
+ 
++	/* Show only for Ally X +, as Ally 1 needs it forced off */
++	if (attr == &dev_attr_mcu_powersave.attr &&
++			asus_ally_has_quirk(ASUS_ROG_ALLY_NO_POWERSAVE))
++		return 0;
++
+ 	if (devid != -1)
+ 		ok = !(asus_wmi_get_devstate_simple(asus, devid) < 0);
+ 
+@@ -4637,6 +4674,23 @@ static int asus_wmi_add(struct platform_
  	if (err)
  		goto fail_platform;
  
-+	ally_mcu_usb_switch = dmi_check_system(asus_ally_mcu_quirk);
++	ally_mcu_usb_switch = acpi_has_method(NULL, ASUS_USB0_PWR_EC0_CSEE)
++				&& dmi_check_system(asus_ally_mcu_quirk);
 +	if (ally_mcu_usb_switch) {
 +		/*
 +		 * These steps ensure the device is in a valid good state, this is
 +		 * especially important for the Ally 1 after a reboot.
 +		 */
-+		acpi_execute_simple_method(NULL, ASUS_USB0_PWR_EC0_CSEE, 0xB8);
-+		msleep(500);
++		acpi_execute_simple_method(NULL, ASUS_USB0_PWR_EC0_CSEE, ASUS_USB0_PWR_EC0_CSEE_ON);
++		msleep(ASUS_USB0_PWR_EC0_CSEE_WAIT);
 +		platform_suspend_screen_on();
 +	}
 +	if (asus_ally_has_quirk(ASUS_ROG_ALLY_NO_POWERSAVE)) {
@@ -111,16 +126,18 @@ diff -rupN linux-6.10.7.orig/drivers/platform/x86/asus-wmi.c linux-6.10.7/driver
  	/* ensure defaults for tunables */
  	asus->ppt_pl2_sppt = 5;
  	asus->ppt_pl1_spl = 5;
-@@ -4649,8 +4684,6 @@ static int asus_wmi_add(struct platform_
+@@ -4649,8 +4703,8 @@ static int asus_wmi_add(struct platform_
  	asus->egpu_enable_available = asus_wmi_dev_is_present(asus, ASUS_WMI_DEVID_EGPU);
  	asus->dgpu_disable_available = asus_wmi_dev_is_present(asus, ASUS_WMI_DEVID_DGPU);
  	asus->kbd_rgb_state_available = asus_wmi_dev_is_present(asus, ASUS_WMI_DEVID_TUF_RGB_STATE);
 -	asus->ally_mcu_usb_switch = acpi_has_method(NULL, ASUS_USB0_PWR_EC0_CSEE)
 -						&& dmi_match(DMI_BOARD_NAME, "RC71L");
++	ally_mcu_usb_switch = acpi_has_method(NULL, ASUS_USB0_PWR_EC0_CSEE)
++						&& dmi_check_system(asus_ally_mcu_quirk);
  
  	if (asus_wmi_dev_is_present(asus, ASUS_WMI_DEVID_MINI_LED_MODE))
  		asus->mini_led_dev_id = ASUS_WMI_DEVID_MINI_LED_MODE;
-@@ -4843,34 +4876,6 @@ static int asus_hotk_resume(struct devic
+@@ -4843,34 +4897,6 @@ static int asus_hotk_resume(struct devic
  	return 0;
  }
  
@@ -155,48 +172,34 @@ diff -rupN linux-6.10.7.orig/drivers/platform/x86/asus-wmi.c linux-6.10.7/driver
  static int asus_hotk_restore(struct device *device)
  {
  	struct asus_wmi *asus = dev_get_drvdata(device);
-@@ -4911,11 +4916,81 @@ static int asus_hotk_restore(struct devi
+@@ -4911,11 +4937,76 @@ static int asus_hotk_restore(struct devi
  	return 0;
  }
  
-+static void asus_ally_s2idle_check(void)
++static bool asus_ally_check_powersave(void)
 +{
-+	int power_state;
++	u32 powersave = 0;
++	int err;
 +
-+	if (ally_mcu_usb_switch) {
-+		int powersave = 0;
-+		power_state = power_supply_is_system_supplied();
-+		/* Wake the device fully if AC plugged in. Prevents many issues */
-+		if (power_state > 0 &&
-+		    ally_suspended_power_state != power_state &&
-+		    !asus_ally_has_quirk(ASUS_ROG_ALLY_NO_WAKE)) {
-+			pm_system_wakeup();
-+			return;
-+		}
-+
-+		/*
-+		 * Required to ensure device is in good state on proper resume. The device
-+		 * does a partial wake on AC unplug and this can leave an Ally X in bad state.
-+		 */
-+		if (!asus_ally_has_quirk(ASUS_ROG_ALLY_NO_POWERSAVE)) {
-+			if (powersave && ally_suspended_power_state != power_state) {
-+				acpi_execute_simple_method(NULL, ASUS_USB0_PWR_EC0_CSEE, 0xB7);
-+				msleep(ASUS_USB0_PWR_EC0_CSEE_WAIT);
-+			}
-+		}
++	/* Ally X requires this if powersave is enabled */
++	if (!asus_ally_has_quirk(ASUS_ROG_ALLY_NO_POWERSAVE)) {
++		err = asus_wmi_get_devstate_dsts(ASUS_WMI_DEVID_MCU_POWERSAVE, &powersave);
++		if (err)
++			pr_err("Failed to read mcu_powersave. %d\n", err);
++		return powersave == 1;
 +	}
++
++	return false;
 +}
 +
 +static void asus_ally_s2idle_restore(void)
 +{
 +	if (ally_mcu_usb_switch) {
-+		int powersave = 0;
-+		/* Ally X powersave-on requires this */
-+		if (!asus_ally_has_quirk(ASUS_ROG_ALLY_NO_POWERSAVE)) {
-+			asus_wmi_get_devstate_dsts(ASUS_WMI_DEVID_MCU_POWERSAVE, &powersave);
-+			if (powersave)
-+				acpi_execute_simple_method(NULL, ASUS_USB0_PWR_EC0_CSEE, 0xB8);
-+		}
++		/* The Ally X requires this if in powersave mode or devices fail to init */
++		if (asus_ally_check_powersave())
++			if (ACPI_FAILURE(acpi_execute_simple_method(NULL,
++					ASUS_USB0_PWR_EC0_CSEE, ASUS_USB0_PWR_EC0_CSEE_ON)))
++				pr_err("ROG Ally MCU failed to restore\n");
 +
 +		platform_suspend_screen_on();
 +		msleep(ASUS_USB0_PWR_EC0_CSEE_WAIT);
@@ -206,15 +209,12 @@ diff -rupN linux-6.10.7.orig/drivers/platform/x86/asus-wmi.c linux-6.10.7/driver
 +static int asus_hotk_prepare(struct device *device)
 +{
 +	if (ally_mcu_usb_switch) {
-+		int powersave = 0;
-+		/* Ally X powersave-on requires this */
-+		if (!asus_ally_has_quirk(ASUS_ROG_ALLY_NO_POWERSAVE)) {
-+			asus_wmi_get_devstate_dsts(ASUS_WMI_DEVID_MCU_POWERSAVE, &powersave);
-+			if (powersave)
-+				acpi_execute_simple_method(NULL, ASUS_USB0_PWR_EC0_CSEE, 0xB7);
-+		}
++		/* The Ally X requires this if in powersave mode or devices fail to init */
++		if (asus_ally_check_powersave())
++			if (ACPI_FAILURE(acpi_execute_simple_method(NULL,
++					ASUS_USB0_PWR_EC0_CSEE,	ASUS_USB0_PWR_EC0_CSEE_OFF)))
++				pr_err("ROG Ally MCU failed to suspend\n");
 +
-+		ally_suspended_power_state = power_supply_is_system_supplied();
 +		platform_suspend_screen_off();
 +		/*
 +		 * Time here greatly impacts the wake behaviour
@@ -225,9 +225,21 @@ diff -rupN linux-6.10.7.orig/drivers/platform/x86/asus-wmi.c linux-6.10.7/driver
 +	return 0;
 +}
 +
++/*
++ * Ally X requires waking on AC-change if powersave is enabled.
++ * To prevent confusion of different behaviour, apply for all Ally
++ * regardless of quirks.
++ */
++static bool asus_ally_enable_wake(void)
++{
++	return dmi_first_match(asus_ally_mcu_quirk) != NULL;
++}
++
++/* Use only for Ally devices due to the wake_on_ac */
 +static struct acpi_s2idle_dev_ops asus_ally_s2idle_dev_ops = {
-+	.check = asus_ally_s2idle_check,
 +	.restore = asus_ally_s2idle_restore,
++	/* Requirement for at least Ally X to prevent powersave issues */
++	.enable_wake_on_ac_plug = asus_ally_enable_wake,
 +};
 +
  static const struct dev_pm_ops asus_pm_ops = {
@@ -238,27 +250,18 @@ diff -rupN linux-6.10.7.orig/drivers/platform/x86/asus-wmi.c linux-6.10.7/driver
  	.prepare = asus_hotk_prepare,
  };
  
-@@ -4925,7 +5000,7 @@ static int asus_wmi_probe(struct platfor
- {
- 	struct platform_driver *pdrv = to_platform_driver(pdev->dev.driver);
- 	struct asus_wmi_driver *wdrv = to_asus_wmi_driver(pdrv);
--	int ret;
-+	int ret, err;
- 
- 	if (!wmi_has_guid(ASUS_WMI_MGMT_GUID)) {
- 		pr_warn("ASUS Management GUID not found\n");
-@@ -4943,6 +5018,10 @@ static int asus_wmi_probe(struct platfor
+@@ -4943,6 +5034,10 @@ static int asus_wmi_probe(struct platfor
  			return ret;
  	}
  
-+	err = acpi_register_lps0_dev(&asus_ally_s2idle_dev_ops);
-+	if (err)
++	ret = acpi_register_lps0_dev(&asus_ally_s2idle_dev_ops);
++	if (ret)
 +		pr_warn("failed to register LPS0 sleep handler in asus-wmi\n");
 +
  	return asus_wmi_add(pdev);
  }
  
-@@ -4975,6 +5054,7 @@ EXPORT_SYMBOL_GPL(asus_wmi_register_driv
+@@ -4975,6 +5070,7 @@ EXPORT_SYMBOL_GPL(asus_wmi_register_driv
  
  void asus_wmi_unregister_driver(struct asus_wmi_driver *driver)
  {
@@ -268,7 +271,7 @@ diff -rupN linux-6.10.7.orig/drivers/platform/x86/asus-wmi.c linux-6.10.7/driver
  	used = false;
 diff -rupN linux-6.10.7.orig/drivers/platform/x86/asus-wmi.h linux-6.10.7/drivers/platform/x86/asus-wmi.h
 --- linux-6.10.7.orig/drivers/platform/x86/asus-wmi.h	2024-08-29 15:36:13.000000000 +0000
-+++ linux-6.10.7/drivers/platform/x86/asus-wmi.h	2024-09-01 02:47:59.642953086 +0000
++++ linux-6.10.7/drivers/platform/x86/asus-wmi.h	2024-09-04 01:13:36.588115520 +0000
 @@ -16,6 +16,7 @@
  
  #include <linux/platform_device.h>
@@ -277,12 +280,11 @@ diff -rupN linux-6.10.7.orig/drivers/platform/x86/asus-wmi.h linux-6.10.7/driver
  
  #define ASUS_WMI_KEY_IGNORE (-1)
  #define ASUS_WMI_BRN_DOWN	0x2e
-@@ -85,4 +86,21 @@ struct asus_wmi_driver {
+@@ -85,4 +86,19 @@ struct asus_wmi_driver {
  int asus_wmi_register_driver(struct asus_wmi_driver *driver);
  void asus_wmi_unregister_driver(struct asus_wmi_driver *driver);
  
 +#define ASUS_ROG_ALLY_NO_POWERSAVE	BIT(0)
-+#define ASUS_ROG_ALLY_NO_WAKE		BIT(1)
 +
 +/* To be used by both asus-armoury and asus-wmi */
 +static const struct dmi_system_id asus_ally_mcu_quirk[] = {
@@ -290,18 +292,43 @@ diff -rupN linux-6.10.7.orig/drivers/platform/x86/asus-wmi.h linux-6.10.7/driver
 +		.matches = {
 +			DMI_MATCH(DMI_BOARD_NAME, "RC71L"),
 +		},
-+		.driver_data = (void *)(ASUS_ROG_ALLY_NO_POWERSAVE | ASUS_ROG_ALLY_NO_WAKE),
++		.driver_data = (void *)(ASUS_ROG_ALLY_NO_POWERSAVE),
 +	},
 +	{ },
 +};
 +
 +bool asus_ally_has_quirk(unsigned long quirk);
 +
-+
  #endif /* !_ASUS_WMI_H_ */
-diff -rupN linux-6.10.6.orig/drivers/hid/hid-asus.c linux-6.10.6/drivers/hid/hid-asus.c
---- linux-6.10.6.orig/drivers/hid/hid-asus.c	2024-08-19 04:05:40.000000000 +0000
-+++ linux-6.10.6/drivers/hid/hid-asus.c	2024-08-22 03:09:56.997507927 +0000
+diff -rupN linux-6.10.7.orig/include/linux/platform_data/x86/asus-wmi.h linux-6.10.7/include/linux/platform_data/x86/asus-wmi.h
+--- linux-6.10.7.orig/include/linux/platform_data/x86/asus-wmi.h	2024-08-29 15:36:13.000000000 +0000
++++ linux-6.10.7/include/linux/platform_data/x86/asus-wmi.h	2024-09-04 01:13:06.875935306 +0000
+@@ -4,6 +4,7 @@
+ 
+ #include <linux/errno.h>
+ #include <linux/types.h>
++#include <linux/dmi.h>
+ 
+ /* WMI Methods */
+ #define ASUS_WMI_METHODID_SPEC	        0x43455053 /* BIOS SPECification */
+@@ -160,4 +161,14 @@ static inline int asus_wmi_evaluate_meth
+ }
+ #endif
+ 
++/* To be used by both hid-asus and asus-wmi to determine which controls kbd_brightness */
++static const struct dmi_system_id asus_use_hid_led_dmi_ids[] = {
++	{
++		.matches = {
++			DMI_MATCH(DMI_BOARD_NAME, "RC71L"),
++		},
++	},
++	{ },
++};
++
+ #endif	/* __PLATFORM_DATA_X86_ASUS_WMI_H */
+diff -rupN linux-6.10.7.orig/drivers/hid/hid-asus.c linux-6.10.7/drivers/hid/hid-asus.c
+--- linux-6.10.7.orig/drivers/hid/hid-asus.c	2024-08-29 15:36:13.000000000 +0000
++++ linux-6.10.7/drivers/hid/hid-asus.c	2024-09-03 07:33:38.065628135 +0000
 @@ -52,6 +52,9 @@ MODULE_DESCRIPTION("Asus HID Keyboard an
  #define FEATURE_KBD_LED_REPORT_ID1 0x5d
  #define FEATURE_KBD_LED_REPORT_ID2 0x5e
@@ -332,7 +359,7 @@ diff -rupN linux-6.10.6.orig/drivers/hid/hid-asus.c linux-6.10.6/drivers/hid/hid
  		return false;
  
 +	if (drvdata->quirks & QUIRK_ROG_NKEY_KEYBOARD &&
-+			dmi_match(DMI_BOARD_NAME, "RC71L")) {
++			dmi_check_system(asus_use_hid_led_dmi_ids)) {
 +		hid_info(hdev, "using HID for asus::kbd_backlight\n");
 +		return false;
 +	}
@@ -362,7 +389,7 @@ diff -rupN linux-6.10.6.orig/drivers/hid/hid-asus.c linux-6.10.6/drivers/hid/hid
  	{ HID_USB_DEVICE(USB_VENDOR_ID_ASUSTEK,
  	    USB_DEVICE_ID_ASUSTEK_ROG_NKEY_ALLY),
 -	  QUIRK_USE_KBD_BACKLIGHT | QUIRK_ROG_NKEY_KEYBOARD },
-+	  QUIRK_USE_KBD_BACKLIGHT | QUIRK_ROG_NKEY_KEYBOARD | QUIRK_ROG_ALLY_XPAD},
++	  QUIRK_USE_KBD_BACKLIGHT | QUIRK_ROG_NKEY_KEYBOARD | QUIRK_ROG_ALLY_XPAD },
  	{ HID_USB_DEVICE(USB_VENDOR_ID_ASUSTEK,
  	    USB_DEVICE_ID_ASUSTEK_ROG_CLAYMORE_II_KEYBOARD),
  	  QUIRK_ROG_CLAYMORE_II_KEYBOARD },

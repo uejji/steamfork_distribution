@@ -1,28 +1,54 @@
-diff -rupN linux-6.10.6.orig/drivers/platform/x86/asus-wmi.c linux-6.10.6/drivers/platform/x86/asus-wmi.c
---- linux-6.10.6.orig/drivers/platform/x86/asus-wmi.c	2024-08-19 04:05:40.000000000 +0000
-+++ linux-6.10.6/drivers/platform/x86/asus-wmi.c	2024-08-22 06:09:10.887285696 +0000
-@@ -503,12 +503,27 @@ static int asus_wmi_get_devstate(struct
+diff -rupN linux-6.10.7.hid-asus-ally/drivers/platform/x86/asus-wmi.c linux-6.10.7/drivers/platform/x86/asus-wmi.c
+--- linux-6.10.7.hid-asus-ally/drivers/platform/x86/asus-wmi.c	2024-09-03 19:42:22.632094499 +0000
++++ linux-6.10.7/drivers/platform/x86/asus-wmi.c	2024-09-03 19:46:36.571551572 +0000
+@@ -503,8 +503,22 @@ static int asus_wmi_get_devstate(struct
  	return 0;
  }
  
+-/* For use with devices where the ACPI get method is always ASUS_WMI_METHODID_DSTS */
+-static int asus_wmi_get_devstate_dsts(u32 dev_id, u32 *retval)
++/**
++ * asus_wmi_get_devstate_dsts() - Get the WMI function state.
++ * @dev_id: The WMI function to call.
++ * @retval: A pointer to where to store the value returned from WMI.
++ *
++ * The returned WMI function state can also be used to determine if the WMI
++ * function is supported by checking if the asus_wmi_get_devstate_dsts()
++ * returns an error.
++ *
++ * On success the return value is 0, and the retval is a valid value returned
++ * by the successful WMI function call. An error value is returned only if the
++ * WMI function failed, or if it returns "unsupported" which is typically a 0
++ * (no return, and no 'supported' bit set), or a 0xFFFFFFFE (~1) which if not
++ * caught here can result in unexpected behaviour later.
++ */
++int asus_wmi_get_devstate_dsts(u32 dev_id, u32 *retval)
+ {
+ 	int err;
+ 
+@@ -519,13 +533,28 @@ static int asus_wmi_get_devstate_dsts(u3
+ 
+ 	return 0;
+ }
++EXPORT_SYMBOL_GPL(asus_wmi_get_devstate_dsts);
+ 
 -static int asus_wmi_set_devstate(u32 dev_id, u32 ctrl_param,
 -				 u32 *retval)
-+int asus_wmi_get_devstate_dsts(u32 dev_id, u32 *retval)
-+{
-+	int err;
-+
-+	err = asus_wmi_evaluate_method(ASUS_WMI_METHODID_DSTS, dev_id, 0, retval);
-+	if (err)
-+		return err;
-+
-+	if (*retval == ~0)
-+		return -ENODEV;
-+
-+	return 0;
-+}
-+EXPORT_SYMBOL_GPL(asus_wmi_get_devstate_dsts);
-+
-+int asus_wmi_set_devstate(u32 dev_id, u32 ctrl_param,				 u32 *retval)
++/**
++ * asus_wmi_set_devstate() - Set the WMI function state.
++ * @dev_id: The WMI function to call.
++ * @ctrl_param: The argument to be used for this WMI function.
++ * @retval: A pointer to where to store the value returned from WMI.
++ *
++ * The returned WMI function state if not checked here for error as
++ * asus_wmi_set_devstate() is not called unless first paired with a call to
++ * asus_wmi_get_devstate_dsts() to check that the WMI function is supported.
++ *
++ * On success the return value is 0, and the retval is a valid value returned
++ * by the successful WMI function call. An error value is returned only if the
++ * WMI function failed.
++ */
++int asus_wmi_set_devstate(u32 dev_id, u32 ctrl_param, u32 *retval)
  {
  	return asus_wmi_evaluate_method(ASUS_WMI_METHODID_DEVS, dev_id,
  					ctrl_param, retval);
@@ -31,9 +57,9 @@ diff -rupN linux-6.10.6.orig/drivers/platform/x86/asus-wmi.c linux-6.10.6/driver
  
  /* Helper for special devices with magic return codes */
  static int asus_wmi_get_devstate_bits(struct asus_wmi *asus,
-diff -rupN linux-6.10.6.orig/include/linux/platform_data/x86/asus-wmi.h linux-6.10.6/include/linux/platform_data/x86/asus-wmi.h
---- linux-6.10.6.orig/include/linux/platform_data/x86/asus-wmi.h	2024-08-19 04:05:40.000000000 +0000
-+++ linux-6.10.6/include/linux/platform_data/x86/asus-wmi.h	2024-08-22 05:57:28.779047172 +0000
+diff -rupN linux-6.10.7.orig/include/linux/platform_data/x86/asus-wmi.h linux-6.10.7/include/linux/platform_data/x86/asus-wmi.h
+--- linux-6.10.7.orig/include/linux/platform_data/x86/asus-wmi.h	2024-08-29 15:36:13.000000000 +0000
++++ linux-6.10.7/include/linux/platform_data/x86/asus-wmi.h	2024-09-03 04:02:27.464319041 +0000
 @@ -66,6 +66,7 @@
  #define ASUS_WMI_DEVID_THROTTLE_THERMAL_POLICY 0x00120075
  
@@ -48,7 +74,7 @@ diff -rupN linux-6.10.6.orig/include/linux/platform_data/x86/asus-wmi.h linux-6.
  
 +/* Intel E-core and P-core configuration in a format 0x0[E]0[P] */
 +#define ASUS_WMI_DEVID_CORES		0x001200D2
-+/* Maximum Intel E-core and P-core availability */
++ /* Maximum Intel E-core and P-core availability */
 +#define ASUS_WMI_DEVID_CORES_MAX	0x001200D3
 +#define ASUS_WMI_DEVID_DGPU_BASE_TGP	0x00120099
 +#define ASUS_WMI_DEVID_DGPU_SET_TGP	0x00120098
@@ -65,11 +91,11 @@ diff -rupN linux-6.10.6.orig/include/linux/platform_data/x86/asus-wmi.h linux-6.
 +int asus_wmi_set_devstate(u32 dev_id, u32 ctrl_param, u32 *retval);
  int asus_wmi_evaluate_method(u32 method_id, u32 arg0, u32 arg1, u32 *retval);
  #else
-+static int asus_wmi_get_devstate_dsts(u32 dev_id, u32 *retval)
++static inline int asus_wmi_get_devstate_dsts(u32 dev_id, u32 *retval)
 +{
 +	return -ENODEV;
 +}
-+static int asus_wmi_set_devstate(u32 dev_id, u32 ctrl_param, u32 *retval)
++static inline int asus_wmi_set_devstate(u32 dev_id, u32 ctrl_param, u32 *retval)
 +{
 +	return -ENODEV;
 +}
