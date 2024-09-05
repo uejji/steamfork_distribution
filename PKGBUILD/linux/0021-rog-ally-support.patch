@@ -13,7 +13,7 @@ diff -rupN linux-6.10.7.orig/drivers/platform/x86/asus-wmi.c linux-6.10.7/driver
  		asus->kbd_led.flags = LED_BRIGHT_HW_CHANGED;
 diff -rupN linux-6.10.7.orig/include/linux/platform_data/x86/asus-wmi.h linux-6.10.7/include/linux/platform_data/x86/asus-wmi.h
 --- linux-6.10.7.orig/include/linux/platform_data/x86/asus-wmi.h	2024-08-29 15:36:13.000000000 +0000
-+++ linux-6.10.7/include/linux/platform_data/x86/asus-wmi.h	2024-09-03 07:16:00.508422806 +0000
++++ linux-6.10.7/include/linux/platform_data/x86/asus-wmi.h	2024-09-03 07:27:36.646516696 +0000
 @@ -4,6 +4,7 @@
  
  #include <linux/errno.h>
@@ -22,7 +22,7 @@ diff -rupN linux-6.10.7.orig/include/linux/platform_data/x86/asus-wmi.h linux-6.
  
  /* WMI Methods */
  #define ASUS_WMI_METHODID_SPEC	        0x43455053 /* BIOS SPECification */
-@@ -160,4 +160,14 @@ static inline int asus_wmi_evaluate_meth
+@@ -160,4 +161,29 @@ static inline int asus_wmi_evaluate_meth
  }
  #endif
  
@@ -31,6 +31,21 @@ diff -rupN linux-6.10.7.orig/include/linux/platform_data/x86/asus-wmi.h linux-6.
 +	{
 +		.matches = {
 +			DMI_MATCH(DMI_BOARD_NAME, "RC71L"),
++		},
++	},
++	{ },
++};
++
++/* To be used by both hid-asus and asus-wmi to determine which controls kbd_brightness */
++static const struct dmi_system_id asus_ally_mcu_quirk[] = {
++	{
++		.matches = {
++			DMI_MATCH(DMI_BOARD_NAME, "RC71L"),
++		},
++	},
++	{
++		.matches = {
++			DMI_MATCH(DMI_BOARD_NAME, "RC72L"),
 +		},
 +	},
 +	{ },
