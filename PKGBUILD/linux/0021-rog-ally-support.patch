@@ -1,6 +1,6 @@
-diff -rupN linux-6.10.7.orig/drivers/platform/x86/asus-wmi.c linux-6.10.7/drivers/platform/x86/asus-wmi.c
---- linux-6.10.7.orig/drivers/platform/x86/asus-wmi.c	2024-08-29 15:36:13.000000000 +0000
-+++ linux-6.10.7/drivers/platform/x86/asus-wmi.c	2024-09-03 15:16:17.351808373 +0000
+diff -rupN linux-6.10.8.orig/drivers/platform/x86/asus-wmi.c linux-6.10.8/drivers/platform/x86/asus-wmi.c
+--- linux-6.10.8.orig/drivers/platform/x86/asus-wmi.c	2024-09-04 11:30:16.000000000 +0000
++++ linux-6.10.8/drivers/platform/x86/asus-wmi.c	2024-09-05 21:07:18.050750242 +0000
 @@ -137,10 +137,11 @@ module_param(fnlock_default, bool, 0444)
  #define ASUS_MINI_LED_2024_STRONG	0x01
  #define ASUS_MINI_LED_2024_OFF		0x02
@@ -172,7 +172,7 @@ diff -rupN linux-6.10.7.orig/drivers/platform/x86/asus-wmi.c linux-6.10.7/driver
  static int asus_hotk_restore(struct device *device)
  {
  	struct asus_wmi *asus = dev_get_drvdata(device);
-@@ -4911,11 +4937,76 @@ static int asus_hotk_restore(struct devi
+@@ -4911,11 +4937,80 @@ static int asus_hotk_restore(struct devi
  	return 0;
  }
  
@@ -225,6 +225,9 @@ diff -rupN linux-6.10.7.orig/drivers/platform/x86/asus-wmi.c linux-6.10.7/driver
 +	return 0;
 +}
 +
++static bool ally_wake_on_ac;
++module_param(ally_wake_on_ac, bool, 0644);
++
 +/*
 + * Ally X requires waking on AC-change if powersave is enabled.
 + * To prevent confusion of different behaviour, apply for all Ally
@@ -232,7 +235,8 @@ diff -rupN linux-6.10.7.orig/drivers/platform/x86/asus-wmi.c linux-6.10.7/driver
 + */
 +static bool asus_ally_enable_wake(void)
 +{
-+	return dmi_first_match(asus_ally_mcu_quirk) != NULL;
++	return asus_ally_check_powersave() ||
++		dmi_first_match(asus_ally_mcu_quirk) != NULL && ally_wake_on_ac;
 +}
 +
 +/* Use only for Ally devices due to the wake_on_ac */
@@ -250,7 +254,7 @@ diff -rupN linux-6.10.7.orig/drivers/platform/x86/asus-wmi.c linux-6.10.7/driver
  	.prepare = asus_hotk_prepare,
  };
  
-@@ -4943,6 +5034,10 @@ static int asus_wmi_probe(struct platfor
+@@ -4943,6 +5038,10 @@ static int asus_wmi_probe(struct platfor
  			return ret;
  	}
  
@@ -261,7 +265,7 @@ diff -rupN linux-6.10.7.orig/drivers/platform/x86/asus-wmi.c linux-6.10.7/driver
  	return asus_wmi_add(pdev);
  }
  
-@@ -4975,6 +5070,7 @@ EXPORT_SYMBOL_GPL(asus_wmi_register_driv
+@@ -4975,6 +5074,7 @@ EXPORT_SYMBOL_GPL(asus_wmi_register_driv
  
  void asus_wmi_unregister_driver(struct asus_wmi_driver *driver)
  {
@@ -271,7 +275,7 @@ diff -rupN linux-6.10.7.orig/drivers/platform/x86/asus-wmi.c linux-6.10.7/driver
  	used = false;
 diff -rupN linux-6.10.7.orig/drivers/platform/x86/asus-wmi.h linux-6.10.7/drivers/platform/x86/asus-wmi.h
 --- linux-6.10.7.orig/drivers/platform/x86/asus-wmi.h	2024-08-29 15:36:13.000000000 +0000
-+++ linux-6.10.7/drivers/platform/x86/asus-wmi.h	2024-09-03 15:03:04.542385902 +0000
++++ linux-6.10.7/drivers/platform/x86/asus-wmi.h	2024-09-04 01:13:36.588115520 +0000
 @@ -16,6 +16,7 @@
  
  #include <linux/platform_device.h>
@@ -302,7 +306,7 @@ diff -rupN linux-6.10.7.orig/drivers/platform/x86/asus-wmi.h linux-6.10.7/driver
  #endif /* !_ASUS_WMI_H_ */
 diff -rupN linux-6.10.7.orig/include/linux/platform_data/x86/asus-wmi.h linux-6.10.7/include/linux/platform_data/x86/asus-wmi.h
 --- linux-6.10.7.orig/include/linux/platform_data/x86/asus-wmi.h	2024-08-29 15:36:13.000000000 +0000
-+++ linux-6.10.7/include/linux/platform_data/x86/asus-wmi.h	2024-09-03 15:03:36.720564459 +0000
++++ linux-6.10.7/include/linux/platform_data/x86/asus-wmi.h	2024-09-04 01:13:06.875935306 +0000
 @@ -4,6 +4,7 @@
  
  #include <linux/errno.h>
@@ -328,7 +332,7 @@ diff -rupN linux-6.10.7.orig/include/linux/platform_data/x86/asus-wmi.h linux-6.
  #endif	/* __PLATFORM_DATA_X86_ASUS_WMI_H */
 diff -rupN linux-6.10.7.orig/drivers/hid/hid-asus.c linux-6.10.7/drivers/hid/hid-asus.c
 --- linux-6.10.7.orig/drivers/hid/hid-asus.c	2024-08-29 15:36:13.000000000 +0000
-+++ linux-6.10.7/drivers/hid/hid-asus.c	2024-09-03 05:45:58.091476188 +0000
++++ linux-6.10.7/drivers/hid/hid-asus.c	2024-09-03 07:33:38.065628135 +0000
 @@ -52,6 +52,9 @@ MODULE_DESCRIPTION("Asus HID Keyboard an
  #define FEATURE_KBD_LED_REPORT_ID1 0x5d
  #define FEATURE_KBD_LED_REPORT_ID2 0x5e
