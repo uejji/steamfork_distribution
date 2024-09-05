@@ -1,0 +1,122 @@
+diff -rupN linux-6.10.7.orig/drivers/platform/x86/asus-wmi.c linux-6.10.7/drivers/platform/x86/asus-wmi.c
+--- linux-6.10.7.orig/drivers/platform/x86/asus-wmi.c	2024-08-29 15:36:13.000000000 +0000
++++ linux-6.10.7/drivers/platform/x86/asus-wmi.c	2024-09-03 05:19:11.734934693 +0000
+@@ -1685,7 +1685,8 @@ static int asus_wmi_led_init(struct asus
+ 			goto error;
+ 	}
+ 
+-	if (!kbd_led_read(asus, &led_val, NULL)) {
++	if (!kbd_led_read(asus, &led_val, NULL) && !dmi_check_system(asus_use_hid_led_dmi_ids)) {
++		pr_info("using asus-wmi for asus::kbd_backlight\n");
+ 		asus->kbd_led_wk = led_val;
+ 		asus->kbd_led.name = "asus::kbd_backlight";
+ 		asus->kbd_led.flags = LED_BRIGHT_HW_CHANGED;
+diff -rupN linux-6.10.7.orig/include/linux/platform_data/x86/asus-wmi.h linux-6.10.7/include/linux/platform_data/x86/asus-wmi.h
+--- linux-6.10.7.orig/include/linux/platform_data/x86/asus-wmi.h	2024-08-29 15:36:13.000000000 +0000
++++ linux-6.10.7/include/linux/platform_data/x86/asus-wmi.h	2024-09-03 07:16:00.508422806 +0000
+@@ -4,6 +4,7 @@
+ 
+ #include <linux/errno.h>
+ #include <linux/types.h>
++#include <linux/dmi.h>
+ 
+ /* WMI Methods */
+ #define ASUS_WMI_METHODID_SPEC	        0x43455053 /* BIOS SPECification */
+@@ -160,4 +160,14 @@ static inline int asus_wmi_evaluate_meth
+ }
+ #endif
+ 
++/* To be used by both hid-asus and asus-wmi to determine which controls kbd_brightness */
++static const struct dmi_system_id asus_use_hid_led_dmi_ids[] = {
++	{
++		.matches = {
++			DMI_MATCH(DMI_BOARD_NAME, "RC71L"),
++		},
++	},
++	{ },
++};
++
+ #endif	/* __PLATFORM_DATA_X86_ASUS_WMI_H */
+diff -rupN linux-6.10.7.orig/drivers/hid/hid-asus.c linux-6.10.7/drivers/hid/hid-asus.c
+--- linux-6.10.7.orig/drivers/hid/hid-asus.c	2024-08-29 15:36:13.000000000 +0000
++++ linux-6.10.7/drivers/hid/hid-asus.c	2024-09-03 05:45:58.091476188 +0000
+@@ -52,6 +52,10 @@ MODULE_DESCRIPTION("Asus HID Keyboard an
+ #define FEATURE_KBD_LED_REPORT_ID1 0x5d
+ #define FEATURE_KBD_LED_REPORT_ID2 0x5e
+ 
++#define ALLY_CFG_INTF_IN_ADDRESS 0x83
++#define ALLY_CFG_INTF_OUT_ADDRESS 0x04
++#define ALLY_X_INTERFACE_ADDRESS 0x87
++
+ #define SUPPORT_KBD_BACKLIGHT BIT(0)
+ 
+ #define MAX_TOUCH_MAJOR 8
+@@ -84,6 +88,7 @@ MODULE_DESCRIPTION("Asus HID Keyboard an
+ #define QUIRK_MEDION_E1239T		BIT(10)
+ #define QUIRK_ROG_NKEY_KEYBOARD		BIT(11)
+ #define QUIRK_ROG_CLAYMORE_II_KEYBOARD BIT(12)
++#define QUIRK_ROG_ALLY_XPAD		BIT(13)
+ 
+ #define I2C_KEYBOARD_QUIRKS			(QUIRK_FIX_NOTEBOOK_REPORT | \
+ 						 QUIRK_NO_INIT_REPORTS | \
+@@ -492,12 +497,19 @@ static void asus_kbd_backlight_work(stru
+  */
+ static bool asus_kbd_wmi_led_control_present(struct hid_device *hdev)
+ {
++	struct asus_drvdata *drvdata = hid_get_drvdata(hdev);
+ 	u32 value;
+ 	int ret;
+ 
+ 	if (!IS_ENABLED(CONFIG_ASUS_WMI))
+ 		return false;
+ 
++	if (drvdata->quirks & QUIRK_ROG_NKEY_KEYBOARD &&
++			dmi_check_system(asus_use_hid_led_dmi_ids)) {
++		hid_info(hdev, "using HID for asus::kbd_backlight\n");
++		return false;
++	}
++
+ 	ret = asus_wmi_evaluate_method(ASUS_WMI_METHODID_DSTS,
+ 				       ASUS_WMI_DEVID_KBD_BACKLIGHT, 0, &value);
+ 	hid_dbg(hdev, "WMI backlight check: rc %d value %x", ret, value);
+@@ -996,6 +1008,17 @@ static int asus_probe(struct hid_device
+ 
+ 	drvdata->quirks = id->driver_data;
+ 
++	/* Ignore these endpoints as they will be used by other drivers */
++	if (drvdata->quirks & QUIRK_ROG_ALLY_XPAD) {
++		struct usb_interface *intf = to_usb_interface(hdev->dev.parent);
++		struct usb_host_endpoint *ep = intf->cur_altsetting->endpoint;
++
++		if (ep->desc.bEndpointAddress == ALLY_X_INTERFACE_ADDRESS ||
++			ep->desc.bEndpointAddress == ALLY_CFG_INTF_IN_ADDRESS ||
++			ep->desc.bEndpointAddress == ALLY_CFG_INTF_OUT_ADDRESS)
++			return -ENODEV;
++	}
++
+ 	/*
+ 	 * T90CHI's keyboard dock returns same ID values as T100CHI's dock.
+ 	 * Thus, identify T90CHI dock with product name string.
+@@ -1247,7 +1270,10 @@ static const struct hid_device_id asus_d
+ 	  QUIRK_USE_KBD_BACKLIGHT | QUIRK_ROG_NKEY_KEYBOARD },
+ 	{ HID_USB_DEVICE(USB_VENDOR_ID_ASUSTEK,
+ 	    USB_DEVICE_ID_ASUSTEK_ROG_NKEY_ALLY),
+-	  QUIRK_USE_KBD_BACKLIGHT | QUIRK_ROG_NKEY_KEYBOARD },
++	  QUIRK_USE_KBD_BACKLIGHT | QUIRK_ROG_NKEY_KEYBOARD | QUIRK_ROG_ALLY_XPAD },
++	{ HID_USB_DEVICE(USB_VENDOR_ID_ASUSTEK,
++	    USB_DEVICE_ID_ASUSTEK_ROG_NKEY_ALLY_X),
++	  QUIRK_USE_KBD_BACKLIGHT | QUIRK_ROG_NKEY_KEYBOARD | QUIRK_ROG_ALLY_XPAD },
+ 	{ HID_USB_DEVICE(USB_VENDOR_ID_ASUSTEK,
+ 	    USB_DEVICE_ID_ASUSTEK_ROG_CLAYMORE_II_KEYBOARD),
+ 	  QUIRK_ROG_CLAYMORE_II_KEYBOARD },
+diff -rupN linux-6.10.7.orig/drivers/hid/hid-ids.h linux-6.10.7/drivers/hid/hid-ids.h
+--- linux-6.10.7.orig/drivers/hid/hid-ids.h	2024-08-29 15:36:13.000000000 +0000
++++ linux-6.10.7/drivers/hid/hid-ids.h	2024-09-03 16:49:24.146138822 +0000
+@@ -210,6 +210,7 @@
+ #define USB_DEVICE_ID_ASUSTEK_ROG_NKEY_KEYBOARD3	0x1a30
+ #define USB_DEVICE_ID_ASUSTEK_ROG_Z13_LIGHTBAR		0x18c6
+ #define USB_DEVICE_ID_ASUSTEK_ROG_NKEY_ALLY		0x1abe
++#define USB_DEVICE_ID_ASUSTEK_ROG_NKEY_ALLY_X		0x1b4c
+ #define USB_DEVICE_ID_ASUSTEK_ROG_CLAYMORE_II_KEYBOARD	0x196b
+ #define USB_DEVICE_ID_ASUSTEK_FX503VD_KEYBOARD	0x1869
+ 

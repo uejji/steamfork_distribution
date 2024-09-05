@@ -45,6 +45,7 @@ source=(
   0012-HACK-add-KConfig-to-enable-driver-specific-color-mgm.patch
   0013-Don-t-create-color_mgmt_properties-on-asics-SIENNA_C.patch
   0020-add-devices-to-oxp-sensors.patch
+  0021-rog-ally-support.patch
   0031-IIO-add-aya-neo-tablet-identifier.patch
   0032-iio-imu-Add-driver-for-Bosch-BMI260-IMU.patch
   0033-Codec-Add-aw87xxx-codec-with-partial-acpi-implementa.patch
@@ -58,6 +59,7 @@ source=(
   0053-add-support-for-screen-off-and-screen-on.patch
   0054-Notify-the-suspend-core-when-displays-are-changed-at.patch
   0055-Move-screen-off_on-code-into-dedicated.patch
+  0098-add-hid-asus-ally-driver.patch
   0099-add-ayaneo-and-ayn-platform-drivers.patch
 )
 validpgpkeys=(
@@ -66,7 +68,7 @@ validpgpkeys=(
   'A2FF3A36AAA56654109064AB19802F8B0D70FC30'  # Jan Alexander Steffens (heftig)
 )
 sha256sums=('SKIP'
-'eaf3778881108ff1ba71731eba807b20cb3badddde069836a6c09f127a12a824' # config
+'1a0b51fb4ba932de13d541a16f8ab57256d2cabf2bf8a6589b1551156895efda' # config
 '2fde7b646741397b0847ff71fe42ec178aef7de2436cc5531b0e725e878dccf8' # 0001-drm-panel-orientation-quirks.patch
 '71d093c5c95d7bd594dd8dcd804eabe2f6b95398c519ded42b7d8994f384e4d8' # 0002-drm-amdgpu-always-allocate-cleared-VRAM-for-GEM-allo.patch
 '783da391e0f45635eefb583b8b3acc29cd62a0c9eeefedf7f790dc2f89c7e279' # 0006-Ayaneo-geek-headset-patch.patch
@@ -75,6 +77,7 @@ sha256sums=('SKIP'
 'f3a54e5bde55f8481cb4e9e3c8fce7a28ae7a7e42208c5f76bdcc6d8dcf6fc08' # 0012-HACK-add-KConfig-to-enable-driver-specific-color-mgm.patch
 '683128d044f4df12dcb0a7b2858075f510d870460dc71f0d60f69df89cf62419' # 0013-Don-t-create-color_mgmt_properties-on-asics-SIENNA_C.patch
 'b42fa6bb0e3d93aa8a81f61543c2058fa6f8412b9ad190110ffb49c46e81d5ce' # 0020-add-devices-to-oxp-sensors.patch
+'6ad144c8b2ef52769682517ff1e1157d47e8331b8d078f71de5e74daf7b2102d' # 0021-rog-ally-support.patch
 'd4bc9044e7e3290d6885d08b8360b61744dc4227a723aa178f9041284e062f08' # 0031-IIO-add-aya-neo-tablet-identifier.patch
 'dc8218b5cf4b505a51c77712e54b944f01560d37a0e7630160d5f5776023cfda' # 0032-iio-imu-Add-driver-for-Bosch-BMI260-IMU.patch
 '5508dedc920022b728489eb3ebbf7235fe48a7822d3c654cd678388c743442b9' # 0033-Codec-Add-aw87xxx-codec-with-partial-acpi-implementa.patch
@@ -88,7 +91,8 @@ sha256sums=('SKIP'
 'a8e3c0f7a3cdcc82a12a5dc44772263c2dd7bc3207f16b98dac42e0e74184172' # 0053-add-support-for-screen-off-and-screen-on.patch
 'abf7ddb74fa9eb0cfdbe81dba7bf4003e5d85ac1a4e1f2b5333ab97986c3e68e' # 0054-Notify-the-suspend-core-when-displays-are-changed-at.patch
 '713653bbb8d96eba905d87864989ca2ee0363efbcdf8217121924f538be2adc8' # 0055-Move-screen-off_on-code-into-dedicated.patch
-'23673c33ea69f3508ff9265d27171e2e58899950d563a1726a6049afe9e92067' # 0099-add-ayaneo-and-ayn-platform-drivers.patch
+'53bb1bba03fc89a6a46405649ddfb4a310c3c0a9171edc6f4d8aa423743ae128' # 0098-add-hid-asus-ally-driver.patch
+'bd92839c0c7826ecf78a67b6a4ed88141fc3ef9d74433cc576cbef8328437e2f' # 0099-add-ayaneo-and-ayn-platform-drivers.patch
 )
 
 export KBUILD_BUILD_HOST=$(hostnamectl hostname)
@@ -104,6 +108,7 @@ prepare() {
   cd ${_srcname}/drivers
   git clone https://github.com/SteamFork/ayaneo-platform.git
   git clone https://github.com/SteamFork/ayn-platform.git
+  git clone https://github.com/uejji/hid-asus-ally.git
   cd ..
 
   echo "Setting version..."
