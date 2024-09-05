@@ -1,19 +1,22 @@
 diff -rupN linux-6.10.6.orig/drivers/Kconfig linux-6.10.6/drivers/Kconfig
 --- linux-6.10.6.orig/drivers/Kconfig	2024-08-19 04:05:40.000000000 +0000
 +++ linux-6.10.6/drivers/Kconfig	2024-08-23 00:14:46.337238881 +0000
-@@ -245,4 +244,6 @@ source "drivers/cdx/Kconfig"
+@@ -245,4 +244,8 @@ source "drivers/cdx/Kconfig"
  
  source "drivers/dpll/Kconfig"
  
++source "drivers/asus-armoury/Kconfig"
++
 +source "drivers/hid-asus-ally/Kconfig"
 +
  endmenu
 diff -rupN linux-6.10.6.orig/drivers/Makefile linux-6.10.6/drivers/Makefile
 --- linux-6.10.6.orig/drivers/Makefile	2024-08-19 04:05:40.000000000 +0000
 +++ linux-6.10.6/drivers/Makefile	2024-08-23 00:14:26.730120667 +0000
-@@ -193,3 +193,5 @@ obj-$(CONFIG_CDX_BUS)		+= cdx/
+@@ -193,3 +193,6 @@ obj-$(CONFIG_CDX_BUS)		+= cdx/
  obj-$(CONFIG_DPLL)		+= dpll/
  
  obj-$(CONFIG_S390)		+= s390/
 +
 +obj-$(CONFIG_ASUS_ARMOURY)	+= asus-armoury/
++obj-$(CONFIG_HID_ASUS_ALLY)	+= hid-asus-ally/

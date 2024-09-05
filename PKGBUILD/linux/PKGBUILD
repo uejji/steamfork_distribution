@@ -56,11 +56,12 @@ source=(
   0040-amdgpu-quirks.patch
   0050-AMD-Pstate-Core-Performance-Boost.patch
   0051-drm-amd-display-let-update_planes_and_stream_state-d.patch
+  0052-asus-armoury-support.patch
   0053-add-support-for-screen-off-and-screen-on.patch
   0054-Notify-the-suspend-core-when-displays-are-changed-at.patch
   0055-Move-screen-off_on-code-into-dedicated.patch
   0056-s2idle-add-ability-to-configure-wakeup-by-ac-adapter.patch
-  0098-add-hid-asus-ally-driver.patch
+  0098-add-ally-and-armoury-drivers.patch
   0099-add-ayaneo-and-ayn-platform-drivers.patch
 )
 validpgpkeys=(
@@ -69,7 +70,7 @@ validpgpkeys=(
   'A2FF3A36AAA56654109064AB19802F8B0D70FC30'  # Jan Alexander Steffens (heftig)
 )
 sha256sums=('SKIP'
-'1a0b51fb4ba932de13d541a16f8ab57256d2cabf2bf8a6589b1551156895efda' # config
+'42c3bfa828ee1ae08e1e9fc2ab275a95191f3dc7311da14e196f0455fabea224' # config
 '2fde7b646741397b0847ff71fe42ec178aef7de2436cc5531b0e725e878dccf8' # 0001-drm-panel-orientation-quirks.patch
 '71d093c5c95d7bd594dd8dcd804eabe2f6b95398c519ded42b7d8994f384e4d8' # 0002-drm-amdgpu-always-allocate-cleared-VRAM-for-GEM-allo.patch
 '783da391e0f45635eefb583b8b3acc29cd62a0c9eeefedf7f790dc2f89c7e279' # 0006-Ayaneo-geek-headset-patch.patch
@@ -89,12 +90,13 @@ sha256sums=('SKIP'
 '2728588169bb1e1b4d9987c0732a316e39670f0c873429179b894ddc6be9b0fa' # 0040-amdgpu-quirks.patch
 'c6ff653b1e55c5524b237a40683a34240d4ec7b95e524441ed3ae09ed885f674' # 0050-AMD-Pstate-Core-Performance-Boost.patch
 '7c7df8d4427c807e2cea0f1e147efcdfb1e7c1c5271823cc6bb49f10b1846d19' # 0051-drm-amd-display-let-update_planes_and_stream_state-d.patch
+'b6d9fec7cdce37d578442ac6a75ee13d5d7f2708868c967f46d6baedd64982ad' # 0052-asus-armoury-support.patch
 'a8e3c0f7a3cdcc82a12a5dc44772263c2dd7bc3207f16b98dac42e0e74184172' # 0053-add-support-for-screen-off-and-screen-on.patch
 'abf7ddb74fa9eb0cfdbe81dba7bf4003e5d85ac1a4e1f2b5333ab97986c3e68e' # 0054-Notify-the-suspend-core-when-displays-are-changed-at.patch
 '713653bbb8d96eba905d87864989ca2ee0363efbcdf8217121924f538be2adc8' # 0055-Move-screen-off_on-code-into-dedicated.patch
 'c9aa6ad7917a260b9360dde0d8cc7a39bfe3c5374eab0748a92a570023ec36c6' # 0056-s2idle-add-ability-to-configure-wakeup-by-ac-adapter.patch
-'53bb1bba03fc89a6a46405649ddfb4a310c3c0a9171edc6f4d8aa423743ae128' # 0098-add-hid-asus-ally-driver.patch
-'bd92839c0c7826ecf78a67b6a4ed88141fc3ef9d74433cc576cbef8328437e2f' # 0099-add-ayaneo-and-ayn-platform-drivers.patch
+'d60a3cb38b99873937a0c4e3df4a969a7bfb25ed298ee2824b56081353f90d8d' # 0098-add-ally-and-armoury-drivers.patch
+'bd570655bb7df92472ad8e9c823b23112bd142f394d20f26097a279f66f0634b' # 0099-add-ayaneo-and-ayn-platform-drivers.patch
 )
 
 export KBUILD_BUILD_HOST=$(hostnamectl hostname)
@@ -110,6 +112,7 @@ prepare() {
   cd ${_srcname}/drivers
   git clone https://github.com/SteamFork/ayaneo-platform.git
   git clone https://github.com/SteamFork/ayn-platform.git
+  git clone https://github.com/uejji/asus-armoury.git
   git clone https://github.com/uejji/hid-asus-ally.git
   cd ..
 

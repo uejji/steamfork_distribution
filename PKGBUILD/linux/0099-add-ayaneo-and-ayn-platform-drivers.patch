@@ -1,7 +1,9 @@
 diff -rupN linux-6.10.6.orig/drivers/Kconfig linux-6.10.6/drivers/Kconfig
 --- linux-6.10.6.orig/drivers/Kconfig	2024-08-23 00:19:13.223847990 +0000
 +++ linux-6.10.6/drivers/Kconfig	2024-08-23 00:22:58.066203600 +0000
-@@ -247,4 +247,8 @@ source "drivers/dpll/Kconfig"
+@@ -247,6 +247,10 @@ source "drivers/dpll/Kconfig"
+ 
+ source "drivers/asus-armoury/Kconfig"
  
 +source "drivers/ayaneo-platform/Kconfig"
 +
@@ -13,9 +15,10 @@ diff -rupN linux-6.10.6.orig/drivers/Kconfig linux-6.10.6/drivers/Kconfig
 diff -rupN linux-6.10.6.orig/drivers/Makefile linux-6.10.6/drivers/Makefile
 --- linux-6.10.6.orig/drivers/Makefile	2024-08-23 00:19:13.223847990 +0000
 +++ linux-6.10.6/drivers/Makefile	2024-08-23 00:20:51.800442335 +0000
-@@ -195,3 +195,5 @@ obj-$(CONFIG_DPLL)		+= dpll/
+@@ -195,4 +195,6 @@ obj-$(CONFIG_DPLL)		+= dpll/
  obj-$(CONFIG_S390)		+= s390/
  
+ obj-$(CONFIG_ASUS_ARMOURY)	+= asus-armoury/
 +obj-$(CONFIG_AYANEO_PLATFORM)	+= ayaneo-platform/
 +obj-$(CONFIG_AYN_PLATFORM)	+= ayn-platform/
  obj-$(CONFIG_HID_ASUS_ALLY)	+= hid-asus-ally/
