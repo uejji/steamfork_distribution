@@ -6,8 +6,8 @@
 #             Mikael Eriksson <mikael_eriksson@miffe.org>
 
 pkgbase=linux
-pkgver=6.10.10
-pkgrel=5
+pkgver=6.10.14
+pkgrel=1
 pkgdesc="Linux Stable"
 arch=(x86_64)
 url="https://kernel.org/"
@@ -64,9 +64,10 @@ validpgpkeys=(
   '647F28654894E3BD457199BE38DBBDC86092693E'  # Greg Kroah-Hartman
   'A2FF3A36AAA56654109064AB19802F8B0D70FC30'  # Jan Alexander Steffens (heftig)
 )
-sha256sums=('SKIP'
+sha256sums=(
+'55e5bcbc68d66776fc46896291f0a24844beb57817345a854d65e3d055fa423e' # linux-6.10.14.tar.xz
 '9a5419e5236028eb47121b165fd5b510356f9757107d3f4f6cf7b1383620cc7d' # config
-'510515d461e6a7b02c276b9d8e7e97131173d7cc5ba6c51f911493afd9670c6e' # 0001-drm-panel-orientation-quirks.patch
+'f49d04544842728761e9405dfb95c98cb33e9f42c56f846e242309d19f154114' # 0001-drm-panel-orientation-quirks.patch
 '71d093c5c95d7bd594dd8dcd804eabe2f6b95398c519ded42b7d8994f384e4d8' # 0002-drm-amdgpu-always-allocate-cleared-VRAM-for-GEM-allo.patch
 '38db1ffbacc2315df6ec862404e0dfe73360f950c75336a960b9da382b2a8e7d' # 0003-Set-amdgpu.ppfeaturemask-0xffffffff-as-default.patch
 '783da391e0f45635eefb583b8b3acc29cd62a0c9eeefedf7f790dc2f89c7e279' # 0006-Ayaneo-geek-headset-patch.patch
@@ -85,7 +86,7 @@ sha256sums=('SKIP'
 '2728588169bb1e1b4d9987c0732a316e39670f0c873429179b894ddc6be9b0fa' # 0040-amdgpu-quirks.patch
 'c6ff653b1e55c5524b237a40683a34240d4ec7b95e524441ed3ae09ed885f674' # 0050-AMD-Pstate-Core-Performance-Boost.patch
 '7c7df8d4427c807e2cea0f1e147efcdfb1e7c1c5271823cc6bb49f10b1846d19' # 0051-drm-amd-display-let-update_planes_and_stream_state-d.patch
-'f0768a4a6e5dd59e872567aca684cd2df86a4fa34899ba73b9c0944348d995e8' # 0060-asus-patch-series.patch
+'24a159254ae60fc0ea6e64fcb98649bbd3b8f34f84ff306621fe3edde2cbbaf1' # 0060-asus-patch-series.patch
 '23673c33ea69f3508ff9265d27171e2e58899950d563a1726a6049afe9e92067' # 0099-add-ayaneo-and-ayn-platform-drivers.patch
 )
 
