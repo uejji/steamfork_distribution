@@ -1,0 +1,265 @@
+#
+# Maintainer: Fewtarius <fewtarius@jelos.org>
+#
+# Based on the linux package by:
+# Maintainer: Jan Alexander Steffens (heftig) <heftig@archlinux.org>
+#             Mikael Eriksson <mikael_eriksson@miffe.org>
+
+pkgbase=linux
+pkgver=6.10.10
+pkgrel=5
+pkgdesc="Linux Stable"
+arch=(x86_64)
+url="https://kernel.org/"
+license=(GPL-2.0-only)
+makedepends=(
+  bc
+  cpio
+  gettext
+  git
+  libelf
+  pahole
+  perl
+  python
+  tar
+  xz
+
+  graphviz
+  imagemagick
+  python-sphinx
+  python-yaml
+)
+options=(
+  !strip
+  !debug
+)
+_srcname=linux-${pkgver}
+source=(
+  "https://cdn.kernel.org/pub/linux/kernel/v6.x/${_srcname}.tar.xz"
+  config         # the main kernel config file
+  0001-drm-panel-orientation-quirks.patch
+  0002-drm-amdgpu-always-allocate-cleared-VRAM-for-GEM-allo.patch
+  0003-Set-amdgpu.ppfeaturemask-0xffffffff-as-default.patch
+  0006-Ayaneo-geek-headset-patch.patch
+  0007-ayaneo-2-headphone-fix.patch
+  0008-ayaneo-1s-hp-fix.patch
+  0012-HACK-add-KConfig-to-enable-driver-specific-color-mgm.patch
+  0013-Don-t-create-color_mgmt_properties-on-asics-SIENNA_C.patch
+  0020-add-devices-to-oxp-sensors.patch
+  0031-IIO-add-aya-neo-tablet-identifier.patch
+  0032-iio-imu-Add-driver-for-Bosch-BMI260-IMU.patch
+  0033-Codec-Add-aw87xxx-codec-with-partial-acpi-implementa.patch
+  0034-Updated-AW87xxx-driver-to-be-more-verbose-for-debugg.patch
+  0036-Updated-AW87xxx-driver-to-automatically-enumerate-a-.patch
+  0037-Updated-AW87xxx-driver-to-implement-Suspend-and-Resu.patch
+  0038-fixup-aw87xx-warnings.patch
+  0040-amdgpu-quirks.patch
+  0050-AMD-Pstate-Core-Performance-Boost.patch
+  0051-drm-amd-display-let-update_planes_and_stream_state-d.patch
+  0060-asus-patch-series.patch
+  0099-add-ayaneo-and-ayn-platform-drivers.patch
+)
+validpgpkeys=(
+  'ABAF11C65A2970B130ABE3C479BE3E4300411886'  # Linus Torvalds
+  '647F28654894E3BD457199BE38DBBDC86092693E'  # Greg Kroah-Hartman
+  'A2FF3A36AAA56654109064AB19802F8B0D70FC30'  # Jan Alexander Steffens (heftig)
+)
+sha256sums=('SKIP'
+'9a5419e5236028eb47121b165fd5b510356f9757107d3f4f6cf7b1383620cc7d' # config
+'510515d461e6a7b02c276b9d8e7e97131173d7cc5ba6c51f911493afd9670c6e' # 0001-drm-panel-orientation-quirks.patch
+'71d093c5c95d7bd594dd8dcd804eabe2f6b95398c519ded42b7d8994f384e4d8' # 0002-drm-amdgpu-always-allocate-cleared-VRAM-for-GEM-allo.patch
+'38db1ffbacc2315df6ec862404e0dfe73360f950c75336a960b9da382b2a8e7d' # 0003-Set-amdgpu.ppfeaturemask-0xffffffff-as-default.patch
+'783da391e0f45635eefb583b8b3acc29cd62a0c9eeefedf7f790dc2f89c7e279' # 0006-Ayaneo-geek-headset-patch.patch
+'33edff1a51ceb763c47b3ae485f5857a716a1dac9f1e8b65c3b93c6e88a4838f' # 0007-ayaneo-2-headphone-fix.patch
+'c6867ab6a95146e796dee888283fdae95837b8f53487e659f6d66bc458054b14' # 0008-ayaneo-1s-hp-fix.patch
+'f45ba5d7dbc004474314c9e0329014e8c9d6b111f1e00397b1072b1bde581761' # 0012-HACK-add-KConfig-to-enable-driver-specific-color-mgm.patch
+'683128d044f4df12dcb0a7b2858075f510d870460dc71f0d60f69df89cf62419' # 0013-Don-t-create-color_mgmt_properties-on-asics-SIENNA_C.patch
+'b42fa6bb0e3d93aa8a81f61543c2058fa6f8412b9ad190110ffb49c46e81d5ce' # 0020-add-devices-to-oxp-sensors.patch
+'d4bc9044e7e3290d6885d08b8360b61744dc4227a723aa178f9041284e062f08' # 0031-IIO-add-aya-neo-tablet-identifier.patch
+'dc8218b5cf4b505a51c77712e54b944f01560d37a0e7630160d5f5776023cfda' # 0032-iio-imu-Add-driver-for-Bosch-BMI260-IMU.patch
+'5508dedc920022b728489eb3ebbf7235fe48a7822d3c654cd678388c743442b9' # 0033-Codec-Add-aw87xxx-codec-with-partial-acpi-implementa.patch
+'a1b744c20d676e248b2da55abf5314c533cf98ec2bcf0b9b008dedfe4ebfb9ef' # 0034-Updated-AW87xxx-driver-to-be-more-verbose-for-debugg.patch
+'73a88310ac0077bedd4a4e49689c06cb8460c55774cea1395d90f9ac57252e8c' # 0036-Updated-AW87xxx-driver-to-automatically-enumerate-a-.patch
+'4f3baa6a367659341873ec7443d6238044cca521e04c0a868322221ac50149ff' # 0037-Updated-AW87xxx-driver-to-implement-Suspend-and-Resu.patch
+'23d91695bf8e5d5cdb9503a47468c6c5cf220bc7966a4720aa46645357e29ee6' # 0038-fixup-aw87xx-warnings.patch
+'2728588169bb1e1b4d9987c0732a316e39670f0c873429179b894ddc6be9b0fa' # 0040-amdgpu-quirks.patch
+'c6ff653b1e55c5524b237a40683a34240d4ec7b95e524441ed3ae09ed885f674' # 0050-AMD-Pstate-Core-Performance-Boost.patch
+'7c7df8d4427c807e2cea0f1e147efcdfb1e7c1c5271823cc6bb49f10b1846d19' # 0051-drm-amd-display-let-update_planes_and_stream_state-d.patch
+'f0768a4a6e5dd59e872567aca684cd2df86a4fa34899ba73b9c0944348d995e8' # 0060-asus-patch-series.patch
+'23673c33ea69f3508ff9265d27171e2e58899950d563a1726a6049afe9e92067' # 0099-add-ayaneo-and-ayn-platform-drivers.patch
+)
+
+export KBUILD_BUILD_HOST=$(hostnamectl hostname)
+export KBUILD_BUILD_USER=$pkgbase
+export KBUILD_BUILD_TIMESTAMP="$(date -Ru${SOURCE_DATE_EPOCH:+d @$SOURCE_DATE_EPOCH})"
+
+_make() {
+  test -s version
+  make KERNELRELEASE="$(<version)" "$@"
+}
+
+prepare() {
+  cd ${_srcname}/drivers
+  git clone https://github.com/SteamFork/ayaneo-platform.git
+  git clone https://github.com/SteamFork/ayn-platform.git
+  cd ..
+
+  echo "Setting version..."
+  echo "-$pkgrel" > localversion.10-pkgrel
+  echo "${pkgbase#linux}" > localversion.20-pkgname
+  make defconfig
+  make -s kernelrelease > version
+  make mrproper
+
+  local src
+  for src in "${source[@]}"; do
+    src="${src%%::*}"
+    src="${src##*/}"
+    [[ $src = *.patch ]] || continue
+    echo "Applying patch $src..."
+    patch -Np1 < "../$src"
+  done
+
+  echo "Setting config..."
+  cp ../config .config
+  _make olddefconfig
+  diff -u ../config .config || :
+
+  echo "Prepared $pkgbase version $(<version)"
+}
+
+build() {
+  cd $_srcname
+  _make -j $(nproc) all
+}
+
+_package() {
+  pkgdesc="The $pkgdesc kernel and modules"
+  depends=(
+    coreutils
+    initramfs
+    kmod
+  )
+  optdepends=(
+    'wireless-regdb: to set the correct wireless channels of your country'
+    'linux-firmware: firmware images needed for some devices'
+  )
+  provides=(
+    KSMBD-MODULE
+    VIRTUALBOX-GUEST-MODULES
+    WIREGUARD-MODULE
+  )
+
+  cd $_srcname
+  local modulesdir="$pkgdir/usr/lib/modules/$(<version)"
+
+  echo "Installing boot image..."
+  # systemd expects to find the kernel here to allow hibernation
+  # https://github.com/systemd/systemd/commit/edda44605f06a41fb86b7ab8128dcf99161d2344
+  install -Dm644 "$(_make -s image_name)" "$modulesdir/vmlinuz"
+
+  # Used by mkinitcpio to name the kernel
+  echo "$pkgbase" | install -Dm644 /dev/stdin "$modulesdir/pkgbase"
+
+  echo "Installing modules..."
+  ZSTD_CLEVEL=19 _make INSTALL_MOD_PATH="$pkgdir/usr" INSTALL_MOD_STRIP=1 \
+    DEPMOD=/doesnt/exist modules_install  # Suppress depmod
+
+  # remove build and source links
+  rm -f "$modulesdir"/{source,build}
+}
+
+_package-headers() {
+  pkgdesc="Headers and scripts for building modules for the $pkgdesc kernel"
+  depends=(pahole)
+
+  cd $_srcname
+  local builddir="$pkgdir/usr/lib/modules/$(<version)/build"
+
+  echo "Installing build files..."
+  install -Dt "$builddir" -m644 .config Makefile Module.symvers System.map \
+    localversion.* version vmlinux
+  install -Dt "$builddir/kernel" -m644 kernel/Makefile
+  install -Dt "$builddir/arch/x86" -m644 arch/x86/Makefile
+  cp -t "$builddir" -a scripts
+
+  # required when STACK_VALIDATION is enabled
+  install -Dt "$builddir/tools/objtool" tools/objtool/objtool
+
+  # required when DEBUG_INFO_BTF_MODULES is enabled
+  install -Dt "$builddir/tools/bpf/resolve_btfids" tools/bpf/resolve_btfids/resolve_btfids
+
+  echo "Installing headers..."
+  cp -t "$builddir" -a include
+  cp -t "$builddir/arch/x86" -a arch/x86/include
+  install -Dt "$builddir/arch/x86/kernel" -m644 arch/x86/kernel/asm-offsets.s
+
+  install -Dt "$builddir/drivers/md" -m644 drivers/md/*.h
+  install -Dt "$builddir/net/mac80211" -m644 net/mac80211/*.h
+
+  # https://bugs.archlinux.org/task/13146
+  install -Dt "$builddir/drivers/media/i2c" -m644 drivers/media/i2c/msp3400-driver.h
+
+  # https://bugs.archlinux.org/task/20402
+  install -Dt "$builddir/drivers/media/usb/dvb-usb" -m644 drivers/media/usb/dvb-usb/*.h
+  install -Dt "$builddir/drivers/media/dvb-frontends" -m644 drivers/media/dvb-frontends/*.h
+  install -Dt "$builddir/drivers/media/tuners" -m644 drivers/media/tuners/*.h
+
+  # https://bugs.archlinux.org/task/71392
+  install -Dt "$builddir/drivers/iio/common/hid-sensors" -m644 drivers/iio/common/hid-sensors/*.h
+
+  echo "Installing KConfig files..."
+  find . -name 'Kconfig*' -exec install -Dm644 {} "$builddir/{}" \;
+
+  echo "Removing unneeded architectures..."
+  local arch
+  for arch in "$builddir"/arch/*/; do
+    [[ $arch = */x86/ ]] && continue
+    echo "Removing $(basename "$arch")"
+    rm -r "$arch"
+  done
+
+  echo "Removing documentation..."
+  rm -r "$builddir/Documentation"
+
+  echo "Removing broken symlinks..."
+  find -L "$builddir" -type l -printf 'Removing %P\n' -delete
+
+  echo "Removing loose objects..."
+  find "$builddir" -type f -name '*.o' -printf 'Removing %P\n' -delete
+
+  echo "Stripping build tools..."
+  local file
+  while read -rd '' file; do
+    case "$(file -Sib "$file")" in
+      application/x-sharedlib\;*)      # Libraries (.so)
+        strip -v $STRIP_SHARED "$file" ;;
+      application/x-archive\;*)        # Libraries (.a)
+        strip -v $STRIP_STATIC "$file" ;;
+      application/x-executable\;*)     # Binaries
+        strip -v $STRIP_BINARIES "$file" ;;
+      application/x-pie-executable\;*) # Relocatable binaries
+        strip -v $STRIP_SHARED "$file" ;;
+    esac
+  done < <(find "$builddir" -type f -perm -u+x ! -name vmlinux -print0)
+
+  echo "Stripping vmlinux..."
+  strip -v $STRIP_STATIC "$builddir/vmlinux"
+
+  echo "Adding symlink..."
+  mkdir -p "$pkgdir/usr/src"
+  ln -sr "$builddir" "$pkgdir/usr/src/$pkgbase"
+}
+
+pkgname=(
+  "$pkgbase"
+  "$pkgbase-headers"
+)
+for _p in "${pkgname[@]}"; do
+  eval "package_$_p() {
+    $(declare -f "_package${_p#$pkgbase}")
+    _package${_p#$pkgbase}
+  }"
+done
+
+# vim:set ts=8 sts=2 sw=2 et:

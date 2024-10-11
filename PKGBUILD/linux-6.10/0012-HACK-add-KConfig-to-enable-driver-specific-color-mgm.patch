@@ -1,0 +1,124 @@
+From f580aa6853513e58e38bd5f5fb4705deec6ed501 Mon Sep 17 00:00:00 2001
+From: Melissa Wen <mwen@igalia.com>
+Date: Sat, 22 Apr 2023 14:08:47 -0100
+Subject: [PATCH 12/41] HACK: add KConfig to enable driver-specific color mgmt
+ props
+
+We are enabling a large set of color calibration features to enhance KMS
+color mgmt but these properties are specific of AMD display HW, and
+cannot be provided by other vendors. Therefore, set a config option to
+enable AMD driver-private properties used on Steam Deck color mgmt
+pipeline. Replace the agreed name `AMD_PRIVATE_COLOR` with
+our downstream version `CONFIG_DRM_AMD_COLOR_STEAMDECK`.
+
+Signed-off-by: Melissa Wen <mwen@igalia.com>
+
+*** Updated by Fewtarius, 09/08/2024.
+
+---
+ drivers/gpu/drm/amd/display/Kconfig                     | 7 +++++++
+ drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm.c       | 2 +-
+ drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_color.c | 2 +-
+ drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_crtc.c  | 6 +++---
+ drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_plane.c | 6 +++---
+ 5 files changed, 15 insertions(+), 8 deletions(-)
+
+diff -rupN linux-6.10.9.orig/drivers/gpu/drm/amd/display/Kconfig linux-6.10.9/drivers/gpu/drm/amd/display/Kconfig
+--- linux-6.10.9.orig/drivers/gpu/drm/amd/display/Kconfig	2024-09-08 17:37:40.514686321 +0000
++++ linux-6.10.9/drivers/gpu/drm/amd/display/Kconfig	2024-09-08 17:37:55.042101682 +0000
+@@ -51,4 +51,11 @@ config DRM_AMD_SECURE_DISPLAY
+ 	  This option enables the calculation of crc of specific region via
+ 	  debugfs. Cooperate with specific DMCU FW.
+ 
++config DRM_AMD_COLOR_STEAMDECK
++	bool "Enable color calibration features for Steam Deck"
++	depends on DRM_AMD_DC
++	help
++	  Choose this option if you want to use AMDGPU features for broader
++	  color management support on Steam Deck.
++
+ endmenu
+diff -rupN linux-6.10.9.orig/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm.c linux-6.10.9/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm.c
+--- linux-6.10.9.orig/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm.c	2024-09-08 17:37:40.518019826 +0000
++++ linux-6.10.9/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm.c	2024-09-08 17:38:35.727531667 +0000
+@@ -4129,7 +4129,7 @@ static int amdgpu_dm_mode_config_init(st
+ 		return r;
+ 	}
+ 
+-#ifdef AMD_PRIVATE_COLOR
++#ifdef CONFIG_DRM_AMD_COLOR_STEAMDECK
+ 	if (amdgpu_dm_create_color_properties(adev)) {
+ 		dc_state_release(state->context);
+ 		kfree(state);
+diff -rupN linux-6.10.9.orig/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_color.c linux-6.10.9/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_color.c
+--- linux-6.10.9.orig/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_color.c	2024-09-08 17:37:40.518019826 +0000
++++ linux-6.10.9/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_color.c	2024-09-08 17:37:55.045435187 +0000
+@@ -97,7 +97,7 @@ static inline struct fixed31_32 amdgpu_d
+ 	return val;
+ }
+ 
+-#ifdef AMD_PRIVATE_COLOR
++#ifdef CONFIG_DRM_AMD_COLOR_STEAMDECK
+ /* Pre-defined Transfer Functions (TF)
+  *
+  * AMD driver supports pre-defined mathematical functions for transferring
+diff -rupN linux-6.10.9.orig/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_crtc.c linux-6.10.9/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_crtc.c
+--- linux-6.10.9.orig/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_crtc.c	2024-09-08 17:37:40.518019826 +0000
++++ linux-6.10.9/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_crtc.c	2024-09-08 17:37:55.045435187 +0000
+@@ -338,7 +338,7 @@ static int amdgpu_dm_crtc_late_register(
+ }
+ #endif
+ 
+-#ifdef AMD_PRIVATE_COLOR
++#ifdef CONFIG_DRM_AMD_COLOR_STEAMDECK
+ /**
+  * dm_crtc_additional_color_mgmt - enable additional color properties
+  * @crtc: DRM CRTC
+@@ -420,7 +420,7 @@ static const struct drm_crtc_funcs amdgp
+ #if defined(CONFIG_DEBUG_FS)
+ 	.late_register = amdgpu_dm_crtc_late_register,
+ #endif
+-#ifdef AMD_PRIVATE_COLOR
++#ifdef CONFIG_DRM_AMD_COLOR_STEAMDECK
+ 	.atomic_set_property = amdgpu_dm_atomic_crtc_set_property,
+ 	.atomic_get_property = amdgpu_dm_atomic_crtc_get_property,
+ #endif
+@@ -599,7 +599,7 @@ int amdgpu_dm_crtc_init(struct amdgpu_di
+ 
+ 	drm_mode_crtc_set_gamma_size(&acrtc->base, MAX_COLOR_LEGACY_LUT_ENTRIES);
+ 
+-#ifdef AMD_PRIVATE_COLOR
++#ifdef CONFIG_DRM_AMD_COLOR_STEAMDECK
+ 	dm_crtc_additional_color_mgmt(&acrtc->base);
+ #endif
+ 	return 0;
+diff -rupN linux-6.10.9.orig/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_plane.c linux-6.10.9/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_plane.c
+--- linux-6.10.9.orig/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_plane.c	2024-09-08 17:37:40.518019826 +0000
++++ linux-6.10.9/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_plane.c	2024-09-08 17:37:55.045435187 +0000
+@@ -1473,7 +1473,7 @@ static void amdgpu_dm_plane_drm_plane_de
+ 	drm_atomic_helper_plane_destroy_state(plane, state);
+ }
+ 
+-#ifdef AMD_PRIVATE_COLOR
++#ifdef CONFIG_DRM_AMD_COLOR_STEAMDECK
+ static void
+ dm_atomic_plane_attach_color_mgmt_properties(struct amdgpu_display_manager *dm,
+ 					     struct drm_plane *plane)
+@@ -1664,7 +1664,7 @@ static const struct drm_plane_funcs dm_p
+ 	.atomic_duplicate_state = amdgpu_dm_plane_drm_plane_duplicate_state,
+ 	.atomic_destroy_state = amdgpu_dm_plane_drm_plane_destroy_state,
+ 	.format_mod_supported = amdgpu_dm_plane_format_mod_supported,
+-#ifdef AMD_PRIVATE_COLOR
++#ifdef CONFIG_DRM_AMD_COLOR_STEAMDECK
+ 	.atomic_set_property = dm_atomic_plane_set_property,
+ 	.atomic_get_property = dm_atomic_plane_get_property,
+ #endif
+@@ -1747,7 +1747,7 @@ int amdgpu_dm_plane_init(struct amdgpu_d
+ 
+ 	drm_plane_helper_add(plane, &dm_plane_helper_funcs);
+ 
+-#ifdef AMD_PRIVATE_COLOR
++#ifdef CONFIG_DRM_AMD_COLOR_STEAMDECK
+ 	dm_atomic_plane_attach_color_mgmt_properties(dm, plane);
+ #endif
+ 	/* Create (reset) the plane state */
