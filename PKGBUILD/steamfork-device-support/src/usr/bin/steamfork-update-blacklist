@@ -1,0 +1,25 @@
+#!/bin/bash
+
+# Read the kernel version directly from vmlinuz to support updating in chroot
+KERNEL=$(file -bL /boot/vmlinuz-linux | grep -o 'version [^ ]*' | cut -d ' ' -f 2)
+
+QUIRKPATHS="$(/usr/bin/steamfork-device-id quirkpaths)"
+
+BLACKLIST="/etc/modprobe.d/steamfork-blacklist.conf"
+
+rm ${BLACKLIST} 2> /dev/null
+
+for QUIRKPATH in ${QUIRKPATHS}; do
+  if [ -f ${QUIRKPATH}/modules.blacklist ]; then
+    echo "# ${QUIRKPATH}" >> ${BLACKLIST}
+
+    # Switch _ to - and ignore comments
+    for MODULE in $(sed 's/_/-/g;/^[[:blank:]]*#/d;s/#.*//' ${QUIRKPATH}/modules.blacklist ); do
+      if [ $(find /usr/lib/modules/${KERNEL} -name "${MODULE}.ko*") ]; then
+        echo "blacklist ${MODULE}" >> ${BLACKLIST}
+      fi
+    done
+
+    echo >> ${BLACKLIST}
+  fi
+done
