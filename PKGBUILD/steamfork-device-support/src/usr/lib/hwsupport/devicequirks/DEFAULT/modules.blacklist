@@ -1,0 +1,2 @@
+radeon  # Switch older devices to AMDGPU driver
+uvcvideo
